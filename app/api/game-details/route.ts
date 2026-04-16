@@ -71,8 +71,8 @@ async function getTeamId(slug: string, teamName: string): Promise<string | null>
   return null;
 }
 
-// Extra competitions to always include so results span all competitions
-const EXTRA_SLUGS = ['uefa.champions', 'uefa.europa'];
+// All ESPN slugs we know about — try every one so results span all competitions
+const ALL_SLUGS = Object.values(ESPN_SLUGS);
 
 async function fetchSchedule(slug: string, teamId: string): Promise<ESPNEvent[]> {
   try {
@@ -88,15 +88,13 @@ async function fetchSchedule(slug: string, teamId: string): Promise<ESPNEvent[]>
   }
 }
 
-/** Fetch and merge schedules across the primary slug + UCL/UEL, sorted by date. */
-async function fetchAllSchedules(primarySlug: string, teamId: string): Promise<ESPNEvent[]> {
-  const slugs = [...new Set([primarySlug, ...EXTRA_SLUGS])];
-  const batches = await Promise.all(slugs.map((s) => fetchSchedule(s, teamId)));
+/** Fetch and merge schedules across ALL known slugs, sorted by date. */
+async function fetchAllSchedules(teamId: string): Promise<ESPNEvent[]> {
+  const batches = await Promise.all(ALL_SLUGS.map((s) => fetchSchedule(s, teamId)));
   const seen = new Set<string>();
   const merged: ESPNEvent[] = [];
   for (const events of batches) {
     for (const ev of events) {
-      // Deduplicate by date + competitor IDs
       const comp = ev.competitions?.[0];
       const ids = comp?.competitors?.map((c) => c.team.id).sort().join(':') ?? '';
       const key = `${ev.date}|${ids}`;
@@ -174,8 +172,8 @@ export async function GET(request: Request) {
   if (!homeId || !awayId) return NextResponse.json(empty);
 
   const [homeEvents, awayEvents] = await Promise.all([
-    fetchAllSchedules(slug, homeId),
-    fetchAllSchedules(slug, awayId),
+    fetchAllSchedules(homeId),
+    fetchAllSchedules(awayId),
   ]);
 
   const allHomeResults = parseResults(homeEvents, homeId);
