@@ -67,12 +67,13 @@ export function processOdds(game: Game): ProcessedOdds {
   };
 }
 
-/** Filter games to only those starting within the next 24 hours */
+/** Filter games to those starting within the next 7 days (from start of today) */
 export function getTodaysGames(games: Game[]): Game[] {
-  const now = new Date();
-  const cutoff = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const cutoff = new Date(startOfToday.getTime() + 7 * 24 * 60 * 60 * 1000);
   return games.filter((g) => {
     const t = new Date(g.commence_time);
-    return t >= now && t <= cutoff;
+    return t >= startOfToday && t <= cutoff;
   });
 }
