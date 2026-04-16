@@ -15,9 +15,9 @@ function toLocalDateStr(date: Date): string {
 }
 
 function buildDateRange(): Date[] {
-  return Array.from({ length: 7 }, (_, i) => {
+  return Array.from({ length: 8 }, (_, i) => {
     const d = new Date();
-    d.setDate(d.getDate() + i);
+    d.setDate(d.getDate() + i - 1); // start from yesterday
     return d;
   });
 }
@@ -30,7 +30,8 @@ function DateNav({ selected, onChange }: { selected: string; onChange: (d: strin
         const dateStr = toLocalDateStr(d);
         const isSelected = dateStr === selected;
         const isToday = dateStr === toLocalDateStr(new Date());
-        const dayName = isToday ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short' });
+        const isYesterday = dateStr === toLocalDateStr(new Date(Date.now() - 86400000));
+        const dayName = isToday ? 'Today' : isYesterday ? 'Yesterday' : d.toLocaleDateString('en-US', { weekday: 'short' });
         const dateLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         return (
           <button
