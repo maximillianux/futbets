@@ -154,17 +154,43 @@ export async function fetchLeagueStats(
   const slug = ESPN_SLUGS[leagueKey];
   if (!slug || games.length === 0) return {};
 
-  // Fetch scoreboard (form + leg info) and standings (records) in parallel
+  // Build date strings for yesterday and 2 days ago (UTC) to cover all US timezones
+  const pastDates = [1, 2].map((offset) => {
+    const d = new Date();
+    d.setDate(d.getDate() - offset);
+    return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+  });
+
+  const scoreboardUrls = [
+    // Default scoreboard — today's live/upcoming events
+    `https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}/scoreboard`,
+    // Past dates — needed for yesterday's completed results
+    ...pastDates.map((d) => `https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}/scoreboard?dates=${d}`),
+    ...pastDates.map((d) => `https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}/scoreboard?dates=${d}&calendartype=whitelist`),
+  ];
+
   let events: ESPNEvent[] = [];
   let standingsMap = new Map<string, string>();
   try {
-    const [sbRes, stMap] = await Promise.all([
-      fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}/scoreboard`, { cache: 'no-store' }),
+    const seen = new Set<string>();
+    const [rawEvents, stMap] = await Promise.all([
+      Promise.all(
+        scoreboardUrls.map(async (url) => {
+          try {
+            const res = await fetch(url, { cache: 'no-store' });
+            if (!res.ok) return [] as ESPNEvent[];
+            const data: ESPNScoreboard = await res.json();
+            return data.events ?? [];
+          } catch { return [] as ESPNEvent[]; }
+        })
+      ),
       fetchStandingsRecord(slug),
     ]);
-    if (sbRes.ok) {
-      const data: ESPNScoreboard = await sbRes.json();
-      events = data.events ?? [];
+    for (const batch of rawEvents) {
+      for (const ev of batch) {
+        const key = String((ev as unknown as Record<string, unknown>).id ?? JSON.stringify(ev));
+        if (!seen.has(key)) { seen.add(key); events.push(ev); }
+      }
     }
     standingsMap = stMap;
   } catch {
