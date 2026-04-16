@@ -8,6 +8,7 @@ import { League } from '@/lib/leagues';
 import { TeamStats, FormResult, LegInfo, GameResult } from '@/lib/stats';
 import { GameStatEntry } from '@/app/api/stats/route';
 import { GameDetailsResponse, MatchResult } from '@/app/api/game-details/route';
+import { StandingRow } from '@/app/api/standings/route';
 
 interface GameRowProps {
   game: Game;
@@ -140,14 +141,67 @@ function ResultRow({ match }: { match: MatchResult }) {
   );
 }
 
+function StandingsTable({ rows, homeTeam, awayTeam }: { rows: StandingRow[]; homeTeam: string; awayTeam: string }) {
+  if (rows.length === 0) return null;
+
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const isHighlighted = (team: string) =>
+    norm(team) === norm(homeTeam) || norm(team) === norm(awayTeam);
+
+  return (
+    <div className="w-60 shrink-0">
+      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">League Table</p>
+      <table className="w-full text-[10px]">
+        <thead>
+          <tr className="text-slate-600 border-b border-[#1e2035]">
+            <th className="text-left pb-1 w-5">#</th>
+            <th className="text-left pb-1">Club</th>
+            <th className="text-center pb-1 w-5">P</th>
+            <th className="text-center pb-1 w-5">W</th>
+            <th className="text-center pb-1 w-5">D</th>
+            <th className="text-center pb-1 w-5">L</th>
+            <th className="text-center pb-1 w-7">GD</th>
+            <th className="text-center pb-1 w-7">Pts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => {
+            const hl = isHighlighted(row.team);
+            return (
+              <tr
+                key={row.position}
+                className={`border-b border-[#1e2035] last:border-0 ${hl ? 'bg-green-500/10' : ''}`}
+              >
+                <td className={`py-1 tabular-nums ${hl ? 'text-green-400 font-bold' : 'text-slate-600'}`}>{row.position}</td>
+                <td className={`py-1 truncate max-w-[80px] ${hl ? 'text-green-300 font-semibold' : 'text-slate-300'}`}>{row.team}</td>
+                <td className="py-1 text-center tabular-nums text-slate-500">{row.played}</td>
+                <td className="py-1 text-center tabular-nums text-slate-400">{row.won}</td>
+                <td className="py-1 text-center tabular-nums text-slate-500">{row.drawn}</td>
+                <td className="py-1 text-center tabular-nums text-slate-500">{row.lost}</td>
+                <td className={`py-1 text-center tabular-nums ${row.gd > 0 ? 'text-green-500' : row.gd < 0 ? 'text-red-500' : 'text-slate-500'}`}>
+                  {row.gd > 0 ? `+${row.gd}` : row.gd}
+                </td>
+                <td className={`py-1 text-center tabular-nums font-bold ${hl ? 'text-green-400' : 'text-white'}`}>{row.points}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function DetailsPanel({ homeTeam, awayTeam, leagueKey }: { homeTeam: string; awayTeam: string; leagueKey: string }) {
   const [details, setDetails] = useState<GameDetailsResponse | null>(null);
+  const [standings, setStandings] = useState<StandingRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/game-details?homeTeam=${encodeURIComponent(homeTeam)}&awayTeam=${encodeURIComponent(awayTeam)}&leagueKey=${encodeURIComponent(leagueKey)}`)
-      .then((r) => r.json())
-      .then((d) => { setDetails(d); setLoading(false); })
+    Promise.all([
+      fetch(`/api/game-details?homeTeam=${encodeURIComponent(homeTeam)}&awayTeam=${encodeURIComponent(awayTeam)}&leagueKey=${encodeURIComponent(leagueKey)}`).then((r) => r.json()),
+      fetch(`/api/standings?leagueKey=${encodeURIComponent(leagueKey)}`).then((r) => r.json()),
+    ])
+      .then(([d, s]) => { setDetails(d); setStandings(Array.isArray(s) ? s : []); setLoading(false); })
       .catch(() => setLoading(false));
   }, [homeTeam, awayTeam, leagueKey]);
 
@@ -162,34 +216,43 @@ function DetailsPanel({ homeTeam, awayTeam, leagueKey }: { homeTeam: string; awa
   if (!details) return null;
 
   const hasH2H = details.h2h.length > 0;
+  const hasStandings = standings.length > 0;
 
   return (
-    <div className={`px-4 pb-4 grid gap-4 ${hasH2H ? 'grid-cols-3' : 'grid-cols-2'}`}>
-      {/* Home last 5 */}
-      <div>
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 truncate">{homeTeam} — Last 5</p>
-        {details.homeLast5.length === 0
-          ? <p className="text-[10px] text-slate-600">No recent results</p>
-          : details.homeLast5.map((m, i) => <ResultRow key={i} match={m} />)
-        }
-      </div>
-
-      {/* H2H */}
-      {hasH2H && (
+    <div className="px-4 pb-4 flex gap-6">
+      {/* Form + H2H columns */}
+      <div className={`flex-1 grid gap-4 min-w-0 ${hasH2H ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        {/* Home last 5 */}
         <div>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Head to Head</p>
-          {details.h2h.map((m, i) => <ResultRow key={i} match={m} />)}
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 truncate">{homeTeam} — Last 5</p>
+          {details.homeLast5.length === 0
+            ? <p className="text-[10px] text-slate-600">No recent results</p>
+            : details.homeLast5.map((m, i) => <ResultRow key={i} match={m} />)
+          }
         </div>
-      )}
 
-      {/* Away last 5 */}
-      <div>
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 truncate">{awayTeam} — Last 5</p>
-        {details.awayLast5.length === 0
-          ? <p className="text-[10px] text-slate-600">No recent results</p>
-          : details.awayLast5.map((m, i) => <ResultRow key={i} match={m} />)
-        }
+        {/* H2H */}
+        {hasH2H && (
+          <div>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Head to Head</p>
+            {details.h2h.map((m, i) => <ResultRow key={i} match={m} />)}
+          </div>
+        )}
+
+        {/* Away last 5 */}
+        <div>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 truncate">{awayTeam} — Last 5</p>
+          {details.awayLast5.length === 0
+            ? <p className="text-[10px] text-slate-600">No recent results</p>
+            : details.awayLast5.map((m, i) => <ResultRow key={i} match={m} />)
+          }
+        </div>
       </div>
+
+      {/* League table */}
+      {hasStandings && (
+        <StandingsTable rows={standings} homeTeam={homeTeam} awayTeam={awayTeam} />
+      )}
     </div>
   );
 }
