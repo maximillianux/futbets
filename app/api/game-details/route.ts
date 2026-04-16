@@ -71,8 +71,18 @@ async function getTeamId(slug: string, teamName: string): Promise<string | null>
   return null;
 }
 
-// All ESPN slugs we know about — try every one so results span all competitions
-const ALL_SLUGS = Object.values(ESPN_SLUGS);
+// All ESPN slugs — league + domestic cups so results span all competitions
+const ALL_SLUGS = [
+  ...Object.values(ESPN_SLUGS),
+  'eng.fa',          // FA Cup
+  'eng.league_cup',  // Carabao Cup
+  'esp.copa_del_rey',
+  'ger.dfb_pokal',
+  'ita.coppa_italia',
+  'fra.coupe_de_france',
+  'mex.copa_mx',
+  'ned.cup',
+];
 
 async function fetchSchedule(slug: string, teamId: string): Promise<ESPNEvent[]> {
   try {
