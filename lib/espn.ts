@@ -1,4 +1,5 @@
 import { LEAGUES } from './leagues';
+import { resolveAlias } from './aliases';
 
 /** ESPN league slug for each Odds API sport key */
 export const ESPN_SLUGS: Record<string, string> = {
@@ -76,12 +77,16 @@ export async function fetchTeamLogos(): Promise<LogoMap> {
   return logoMap;
 }
 
-/** Look up a logo URL for a team name, trying exact then fuzzy match */
+/** Look up a logo URL for a team name, trying exact then alias then fuzzy match */
 export function findLogo(teamName: string, logoMap: LogoMap): string | null {
   if (logoMap[teamName]) return logoMap[teamName];
 
   const norm = normalize(teamName);
   if (logoMap[norm]) return logoMap[norm];
+
+  // Try alias (e.g. "Sporting Lisbon" → "Sporting CP")
+  const aliased = resolveAlias(norm);
+  if (aliased !== norm && logoMap[aliased]) return logoMap[aliased];
 
   // Partial match: collect all candidates then return the most specific (longest key).
   // Require the ESPN key to have at least 2 words — prevents single-word keys like

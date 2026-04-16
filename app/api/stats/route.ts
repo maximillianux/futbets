@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import { LEAGUES } from '@/lib/leagues';
 import { getCachedOdds, getCachedStats, setCachedStats } from '@/lib/db';
 import { fetchLeagueStats } from '@/lib/stats';
-import { TeamStats, LegInfo } from '@/lib/stats';
+import { TeamStats, LegInfo, GameResult } from '@/lib/stats';
 
 export interface GameStatEntry {
   home: TeamStats;
   away: TeamStats;
   legInfo: LegInfo | null;
+  result: GameResult;
 }
 
 export type StatsResponse = Record<string, GameStatEntry>;

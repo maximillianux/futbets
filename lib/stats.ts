@@ -1,4 +1,5 @@
 import { normalize, ESPN_SLUGS } from './espn';
+import { resolveAlias } from './aliases';
 import { Game } from './odds';
 
 export type FormResult = 'W' | 'D' | 'L';
@@ -6,6 +7,15 @@ export type FormResult = 'W' | 'D' | 'L';
 export interface TeamStats {
   form: FormResult[];   // last 5, oldest→newest for display
   record: string | null; // e.g. "15-5-3" (W-D-L)
+}
+
+export type GameStatus = 'scheduled' | 'live' | 'halftime' | 'finished';
+
+export interface GameResult {
+  status: GameStatus;
+  homeScore: number | null;
+  awayScore: number | null;
+  clock: string | null; // e.g. "67'" live, "90'+5'" finished
 }
 
 export interface LegInfo {
@@ -32,7 +42,13 @@ interface ESPNCompetitor {
   form?: string;           // e.g. "WWLDD" (newest first)
   records?: ESPNRecord[];
   aggregateScore?: number;
+  score?: string;
   team: { displayName: string };
+}
+
+interface ESPNStatus {
+  displayClock: string;
+  type: { name: string };
 }
 
 interface ESPNStandingStat {
@@ -57,6 +73,7 @@ interface ESPNNote {
 
 interface ESPNCompetition {
   competitors: ESPNCompetitor[];
+  status?: ESPNStatus;
   leg?: ESPNLeg;
   notes?: ESPNNote[];
 }
@@ -79,6 +96,22 @@ function parseForm(formStr: string | undefined): FormResult[] {
     .reverse()
     .filter((c): c is FormResult => c === 'W' || c === 'D' || c === 'L')
     .slice(0, 5);
+}
+
+function parseGameResult(comp: ESPNCompetition): GameResult {
+  const typeName = comp.status?.type?.name ?? '';
+  const clock = comp.status?.displayClock ?? null;
+  const home = comp.competitors.find((c) => c.homeAway === 'home');
+  const away = comp.competitors.find((c) => c.homeAway === 'away');
+  const homeScore = home?.score != null ? Number(home.score) : null;
+  const awayScore = away?.score != null ? Number(away.score) : null;
+
+  let status: GameStatus = 'scheduled';
+  if (typeName === 'STATUS_HALFTIME') status = 'halftime';
+  else if (typeName === 'STATUS_IN_PROGRESS') status = 'live';
+  else if (typeName === 'STATUS_FULL_TIME' || typeName === 'STATUS_FINAL' || typeName === 'STATUS_FT') status = 'finished';
+
+  return { status, homeScore, awayScore, clock };
 }
 
 function parseRecord(records: ESPNRecord[] | undefined): string | null {
@@ -112,23 +145,12 @@ async function fetchStandingsRecord(slug: string): Promise<Map<string, string>> 
   return map;
 }
 
-// ── Team name aliases (Odds API name → ESPN normalized name) ─────────────────
-// Add entries here whenever ESPN and The Odds API use different names for the same club.
-const TEAM_ALIASES: Record<string, string> = {
-  'sporting lisbon': 'sporting cp',
-};
-
-/** Resolve an Odds API normalized name to the ESPN normalized name if an alias exists. */
-function resolveAlias(norm: string): string {
-  return TEAM_ALIASES[norm] ?? norm;
-}
-
 // ── Main fetch ────────────────────────────────────────────────────────────────
 
 export async function fetchLeagueStats(
   leagueKey: string,
   games: Game[]
-): Promise<Record<string, { home: TeamStats; away: TeamStats; legInfo: LegInfo | null }>> {
+): Promise<Record<string, { home: TeamStats; away: TeamStats; legInfo: LegInfo | null; result: GameResult }>> {
   const slug = ESPN_SLUGS[leagueKey];
   if (!slug || games.length === 0) return {};
 
@@ -151,7 +173,8 @@ export async function fetchLeagueStats(
 
   // Build normalized name → stats map from ESPN events (form + scoreboard record as fallback)
   const teamMap = new Map<string, TeamStats>();
-  const legMap = new Map<string, LegInfo>(); // "normHome::normAway"
+  const legMap = new Map<string, LegInfo>();        // "normHome::normAway"
+  const resultMap = new Map<string, GameResult>();  // "normHome::normAway"
 
   for (const event of events) {
     const comp = event.competitions[0];
@@ -175,21 +198,27 @@ export async function fetchLeagueStats(
       });
     }
 
-    // Leg / aggregate info (UCL, UEL)
-    if (comp.leg && home && away) {
-      const note = comp.notes?.find((n) => n.type === 'event');
-      legMap.set(`${normalize(home.team.displayName)}::${normalize(away.team.displayName)}`, {
-        leg: comp.leg.value,
-        note: note?.headline ?? comp.leg.displayValue,
-        homeAggregate: home.aggregateScore ?? null,
-        awayAggregate: away.aggregateScore ?? null,
-      });
+    if (home && away) {
+      const key = `${normalize(home.team.displayName)}::${normalize(away.team.displayName)}`;
+      resultMap.set(key, parseGameResult(comp));
+
+      // Leg / aggregate info (UCL, UEL)
+      if (comp.leg) {
+        const note = comp.notes?.find((n) => n.type === 'event');
+        legMap.set(key, {
+          leg: comp.leg.value,
+          note: note?.headline ?? comp.leg.displayValue,
+          homeAggregate: home.aggregateScore ?? null,
+          awayAggregate: away.aggregateScore ?? null,
+        });
+      }
     }
   }
 
   // Match each Odds API game to ESPN stats
   const empty: TeamStats = { form: [], record: null };
-  const result: Record<string, { home: TeamStats; away: TeamStats; legInfo: LegInfo | null }> = {};
+  const defaultResult: GameResult = { status: 'scheduled', homeScore: null, awayScore: null, clock: null };
+  const result: Record<string, { home: TeamStats; away: TeamStats; legInfo: LegInfo | null; result: GameResult }> = {};
 
   for (const game of games) {
     const homeNorm = normalize(game.home_team);
@@ -211,6 +240,7 @@ export async function fetchLeagueStats(
       home: homeStats,
       away: awayStats,
       legInfo: legMap.get(`${homeKey}::${awayKey}`) ?? null,
+      result: resultMap.get(`${homeKey}::${awayKey}`) ?? defaultResult,
     };
   }
 

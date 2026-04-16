@@ -5,7 +5,7 @@ import { Game, processOdds } from '@/lib/odds';
 import { decimalToAmerican } from '@/lib/american-odds';
 import { findLogo, LogoMap } from '@/lib/espn';
 import { League } from '@/lib/leagues';
-import { TeamStats, FormResult, LegInfo } from '@/lib/stats';
+import { TeamStats, FormResult, LegInfo, GameResult } from '@/lib/stats';
 import { GameStatEntry } from '@/app/api/stats/route';
 
 interface GameRowProps {
@@ -88,15 +88,53 @@ function LegBanner({ legInfo }: { legInfo: LegInfo }) {
   );
 }
 
+function TimeCell({ game, result }: { game: Game; result: GameResult }) {
+  const kickoff = new Date(game.commence_time);
+  const timeLabel = kickoff.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+  if (result.status === 'finished') {
+    return (
+      <div className="w-[80px] shrink-0 text-center">
+        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">FT</div>
+        <div className="text-base font-bold text-white tabular-nums">
+          {result.homeScore ?? 0} – {result.awayScore ?? 0}
+        </div>
+      </div>
+    );
+  }
+  if (result.status === 'halftime') {
+    return (
+      <div className="w-[80px] shrink-0 text-center">
+        <div className="text-[10px] font-bold text-yellow-400 uppercase tracking-wider">HT</div>
+        <div className="text-base font-bold text-white tabular-nums">
+          {result.homeScore ?? 0} – {result.awayScore ?? 0}
+        </div>
+      </div>
+    );
+  }
+  if (result.status === 'live') {
+    return (
+      <div className="w-[80px] shrink-0 text-center">
+        <span className="flex items-center justify-center gap-1 text-xs font-semibold text-red-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
+          {result.clock ?? 'LIVE'}
+        </span>
+        <div className="text-base font-bold text-white tabular-nums mt-0.5">
+          {result.homeScore ?? 0} – {result.awayScore ?? 0}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="w-[80px] shrink-0">
+      <span className="text-sm font-medium text-slate-300">{timeLabel}</span>
+    </div>
+  );
+}
+
 export default function GameRow({ game, league, logoMap, gameStats }: GameRowProps) {
   const odds = processOdds(game);
-  const kickoff = new Date(game.commence_time);
-  const now = new Date();
-  const isLive = kickoff.getTime() - now.getTime() <= 0;
-
-  const timeLabel = kickoff.toLocaleTimeString('en-US', {
-    hour: 'numeric', minute: '2-digit', hour12: true,
-  });
+  const gameResult: GameResult = gameStats?.result ?? { status: 'scheduled', homeScore: null, awayScore: null, clock: null };
 
   const homeLogo = findLogo(game.home_team, logoMap);
   const awayLogo = findLogo(game.away_team, logoMap);
@@ -108,17 +146,8 @@ export default function GameRow({ game, league, logoMap, gameStats }: GameRowPro
       {legInfo && <LegBanner legInfo={legInfo} />}
 
       <div className="flex items-center gap-4 px-4 py-3 hover:bg-white/[0.02] transition-colors">
-        {/* Time */}
-        <div className="w-[80px] shrink-0">
-          {isLive ? (
-            <span className="flex items-center gap-1 text-xs font-semibold text-red-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
-              LIVE
-            </span>
-          ) : (
-            <span className="text-sm font-medium text-slate-300">{timeLabel}</span>
-          )}
-        </div>
+        {/* Time / Score */}
+        <TimeCell game={game} result={gameResult} />
 
         {/* Teams + meta */}
         <div className="flex-1 min-w-0 flex items-center gap-3">
