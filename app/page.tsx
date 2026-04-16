@@ -68,21 +68,6 @@ export default function Home() {
       <Header onRefresh={fetchData} loading={loading} lastUpdated={lastUpdated} />
 
       <main className="mx-auto max-w-7xl px-4 py-8">
-        {/* Hero strip */}
-        <div className="mb-6 rounded-2xl bg-gradient-to-r from-green-500/10 via-[#12141f] to-[#12141f] border border-green-500/10 px-6 py-5">
-          <h1 className="text-xl font-bold text-white mb-1">Today&apos;s Fixtures &amp; Odds</h1>
-          <p className="text-sm text-slate-400">
-            Top football leagues · Average across bookmakers · American odds
-          </p>
-          {!loading && data && (
-            <div className="mt-3 flex gap-4 text-sm">
-              <span className="text-white font-semibold">{totalGames} matches</span>
-              <span className="text-slate-500">·</span>
-              <span className="text-slate-400">{leaguesWithGames.length} leagues</span>
-            </div>
-          )}
-        </div>
-
         {/* Loading */}
         {loading && (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
