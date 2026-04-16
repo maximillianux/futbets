@@ -4,11 +4,16 @@ import { ESPN_SLUGS } from '@/lib/espn';
 import { Game } from '@/lib/odds';
 import { getCachedOdds, setCachedOdds } from '@/lib/db';
 
-/** Yesterday through +6 days (8 total) as YYYYMMDD strings */
+/**
+ * 2 days back through +6 days ahead (9 total) as YYYYMMDD strings.
+ * Starting 2 UTC days back ensures US users (up to UTC-8) always have
+ * their "yesterday" covered even when the Vercel server is already
+ * on the next UTC day.
+ */
 function dateRange(): string[] {
-  return Array.from({ length: 8 }, (_, i) => {
+  return Array.from({ length: 9 }, (_, i) => {
     const d = new Date();
-    d.setDate(d.getDate() + i - 1); // -1 = yesterday
+    d.setDate(d.getDate() + i - 2); // -2 = 2 days ago in UTC
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
