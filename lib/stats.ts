@@ -112,6 +112,17 @@ async function fetchStandingsRecord(slug: string): Promise<Map<string, string>> 
   return map;
 }
 
+// ── Team name aliases (Odds API name → ESPN normalized name) ─────────────────
+// Add entries here whenever ESPN and The Odds API use different names for the same club.
+const TEAM_ALIASES: Record<string, string> = {
+  'sporting lisbon': 'sporting cp',
+};
+
+/** Resolve an Odds API normalized name to the ESPN normalized name if an alias exists. */
+function resolveAlias(norm: string): string {
+  return TEAM_ALIASES[norm] ?? norm;
+}
+
 // ── Main fetch ────────────────────────────────────────────────────────────────
 
 export async function fetchLeagueStats(
@@ -183,21 +194,23 @@ export async function fetchLeagueStats(
   for (const game of games) {
     const homeNorm = normalize(game.home_team);
     const awayNorm = normalize(game.away_team);
+    const homeKey = resolveAlias(homeNorm);
+    const awayKey = resolveAlias(awayNorm);
 
     // For teams not in today's scoreboard, fall back to standings record (no form)
-    const homeStats: TeamStats = teamMap.get(homeNorm) ?? {
+    const homeStats: TeamStats = teamMap.get(homeKey) ?? {
       form: [],
-      record: standingsMap.get(homeNorm) ?? null,
+      record: standingsMap.get(homeKey) ?? null,
     };
-    const awayStats: TeamStats = teamMap.get(awayNorm) ?? {
+    const awayStats: TeamStats = teamMap.get(awayKey) ?? {
       form: [],
-      record: standingsMap.get(awayNorm) ?? null,
+      record: standingsMap.get(awayKey) ?? null,
     };
 
     result[game.id] = {
       home: homeStats,
       away: awayStats,
-      legInfo: legMap.get(`${homeNorm}::${awayNorm}`) ?? null,
+      legInfo: legMap.get(`${homeKey}::${awayKey}`) ?? null,
     };
   }
 
