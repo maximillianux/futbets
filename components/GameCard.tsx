@@ -1,12 +1,14 @@
 'use client';
 
 import Image from 'next/image';
+import { useState, useEffect } from 'react';
 import { Game, processOdds } from '@/lib/odds';
 import { decimalToAmerican } from '@/lib/american-odds';
 import { findLogo, LogoMap } from '@/lib/espn';
 import { League } from '@/lib/leagues';
 import { TeamStats, FormResult, LegInfo, GameResult } from '@/lib/stats';
 import { GameStatEntry } from '@/app/api/stats/route';
+import { GameDetailsResponse, MatchResult } from '@/app/api/game-details/route';
 
 interface GameRowProps {
   game: Game;
@@ -132,7 +134,84 @@ function TimeCell({ game, result }: { game: Game; result: GameResult }) {
   );
 }
 
+function ResultBadge({ result }: { result: 'W' | 'D' | 'L' }) {
+  const styles = { W: 'bg-green-500/20 text-green-400', D: 'bg-yellow-500/20 text-yellow-400', L: 'bg-red-500/20 text-red-400' };
+  return (
+    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${styles[result]}`}>{result}</span>
+  );
+}
+
+function ResultRow({ match }: { match: MatchResult }) {
+  return (
+    <div className="flex items-center gap-2 py-1.5 border-b border-[#1e2035] last:border-0">
+      <span className="text-[10px] text-slate-600 w-[44px] shrink-0">{match.date}</span>
+      <span className="text-[10px] text-slate-500 w-4 shrink-0">{match.wasHome ? 'H' : 'A'}</span>
+      <span className="text-xs text-slate-300 flex-1 truncate">{match.opponent}</span>
+      <span className="text-xs font-bold text-white tabular-nums shrink-0">
+        {match.goalsFor}–{match.goalsAgainst}
+      </span>
+      <ResultBadge result={match.result} />
+    </div>
+  );
+}
+
+function DetailsPanel({ homeTeam, awayTeam, leagueKey }: { homeTeam: string; awayTeam: string; leagueKey: string }) {
+  const [details, setDetails] = useState<GameDetailsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`/api/game-details?homeTeam=${encodeURIComponent(homeTeam)}&awayTeam=${encodeURIComponent(awayTeam)}&leagueKey=${encodeURIComponent(leagueKey)}`)
+      .then((r) => r.json())
+      .then((d) => { setDetails(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [homeTeam, awayTeam, leagueKey]);
+
+  if (loading) {
+    return (
+      <div className="px-4 py-4 flex justify-center">
+        <div className="h-4 w-4 rounded-full border border-slate-600 border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  if (!details) return null;
+
+  const hasH2H = details.h2h.length > 0;
+
+  return (
+    <div className={`px-4 pb-4 grid gap-4 ${hasH2H ? 'grid-cols-3' : 'grid-cols-2'}`}>
+      {/* Home last 5 */}
+      <div>
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 truncate">{homeTeam} — Last 5</p>
+        {details.homeLast5.length === 0
+          ? <p className="text-[10px] text-slate-600">No recent results</p>
+          : details.homeLast5.map((m, i) => <ResultRow key={i} match={m} />)
+        }
+      </div>
+
+      {/* H2H */}
+      {hasH2H && (
+        <div>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Head to Head</p>
+          {details.h2h.map((m, i) => <ResultRow key={i} match={m} />)}
+        </div>
+      )}
+
+      {/* Away last 5 */}
+      <div>
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 truncate">{awayTeam} — Last 5</p>
+        {details.awayLast5.length === 0
+          ? <p className="text-[10px] text-slate-600">No recent results</p>
+          : details.awayLast5.map((m, i) => <ResultRow key={i} match={m} />)
+        }
+      </div>
+    </div>
+  );
+}
+
 export default function GameRow({ game, league, logoMap, gameStats }: GameRowProps) {
+  const [expanded, setExpanded] = useState(false);
+
   const odds = processOdds(game);
   const gameResult: GameResult = gameStats?.result ?? { status: 'scheduled', homeScore: null, awayScore: null, clock: null };
 
@@ -145,7 +224,11 @@ export default function GameRow({ game, league, logoMap, gameStats }: GameRowPro
     <div className="border-b border-[#1e2035] last:border-b-0">
       {legInfo && <LegBanner legInfo={legInfo} />}
 
-      <div className="flex items-center gap-4 px-4 py-3 hover:bg-white/[0.02] transition-colors">
+      {/* Main row — clickable to expand */}
+      <div
+        className="flex items-center gap-4 px-4 py-3 hover:bg-white/[0.02] transition-colors cursor-pointer select-none"
+        onClick={() => setExpanded((e) => !e)}
+      >
         {/* Time / Score */}
         <TimeCell game={game} result={gameResult} />
 
@@ -175,7 +258,7 @@ export default function GameRow({ game, league, logoMap, gameStats }: GameRowPro
         </div>
 
         {/* 1X2 */}
-        <div className="shrink-0 flex items-center gap-1.5">
+        <div className="shrink-0 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
           <OddsBtn odds={odds.home} />
           <OddsBtn odds={odds.draw} />
           <OddsBtn odds={odds.away} />
@@ -185,7 +268,7 @@ export default function GameRow({ game, league, logoMap, gameStats }: GameRowPro
         <div className="h-8 w-px bg-[#1e2035] shrink-0" />
 
         {/* O/U */}
-        <div className="shrink-0 flex items-center gap-1.5">
+        <div className="shrink-0 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
           <div className="text-right mr-1">
             <p className="text-[10px] text-slate-600 uppercase tracking-wide">O/U</p>
             <p className="text-xs font-medium text-slate-500">{odds.overPoint ?? 2.5}</p>
@@ -193,7 +276,25 @@ export default function GameRow({ game, league, logoMap, gameStats }: GameRowPro
           <OddsBtn odds={odds.overOdds} />
           <OddsBtn odds={odds.underOdds} />
         </div>
+
+        {/* Chevron */}
+        <div className="shrink-0 text-slate-600">
+          <svg className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
       </div>
+
+      {/* Expanded details */}
+      {expanded && (
+        <div className="bg-[#0d0f1c] border-t border-[#1e2035]">
+          <DetailsPanel
+            homeTeam={game.home_team}
+            awayTeam={game.away_team}
+            leagueKey={league.key}
+          />
+        </div>
+      )}
     </div>
   );
 }
