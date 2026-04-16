@@ -32,18 +32,6 @@ export default function LeagueSection({ league, games, logoMap, statsMap }: Leag
         <div className="flex items-center gap-4 px-4 py-2 border-b border-[#1e2035] bg-[#0e1020]">
           <span className="w-[80px] shrink-0 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Time</span>
           <span className="flex-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Match</span>
-          <div className="shrink-0 flex gap-1.5">
-            {['Home', 'Draw', 'Away'].map((l) => (
-              <span key={l} className="w-[76px] text-center text-[10px] font-semibold uppercase tracking-wider text-slate-600">{l}</span>
-            ))}
-          </div>
-          <div className="w-px shrink-0" />
-          <div className="shrink-0 flex items-center gap-1.5">
-            <span className="w-[52px]" />
-            {['Over', 'Under'].map((l) => (
-              <span key={l} className="w-[76px] text-center text-[10px] font-semibold uppercase tracking-wider text-slate-600">{l}</span>
-            ))}
-          </div>
         </div>
 
         {sorted.map((game) => (

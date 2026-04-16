@@ -64,19 +64,19 @@ export default function Home() {
     setLoading(true);
     setError(null);
     try {
-      const [oddsRes, logosRes, statsRes] = await Promise.all([
-        fetch('/api/odds'),
+      const [fixturesRes, logosRes, statsRes] = await Promise.all([
+        fetch('/api/fixtures'),
         fetch('/api/logos'),
         fetch('/api/stats'),
       ]);
 
-      if (!oddsRes.ok) {
-        const body = await oddsRes.json().catch(() => ({}));
-        throw new Error(body.error ?? `HTTP ${oddsRes.status}`);
+      if (!fixturesRes.ok) {
+        const body = await fixturesRes.json().catch(() => ({}));
+        throw new Error(body.error ?? `HTTP ${fixturesRes.status}`);
       }
 
       const [oddsJson, logosJson, statsJson] = await Promise.all([
-        oddsRes.json() as Promise<OddsData>,
+        fixturesRes.json() as Promise<OddsData>,
         logosRes.ok ? (logosRes.json() as Promise<LogoMap>) : Promise.resolve({} as LogoMap),
         statsRes.ok ? (statsRes.json() as Promise<StatsResponse>) : Promise.resolve({} as StatsResponse),
       ]);

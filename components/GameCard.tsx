@@ -2,8 +2,7 @@
 
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { Game, processOdds } from '@/lib/odds';
-import { decimalToAmerican } from '@/lib/american-odds';
+import { Game } from '@/lib/odds';
 import { findLogo, LogoMap } from '@/lib/espn';
 import { League } from '@/lib/leagues';
 import { TeamStats, FormResult, LegInfo, GameResult } from '@/lib/stats';
@@ -63,20 +62,6 @@ function TeamMeta({ stats }: { stats: TeamStats | undefined }) {
   );
 }
 
-function OddsBtn({ odds }: { odds: number | null }) {
-  if (odds === null) {
-    return (
-      <div className="w-[76px] rounded-lg bg-[#1a1d2e] border border-[#1e2035] py-2 text-center">
-        <span className="text-sm font-semibold text-slate-600">—</span>
-      </div>
-    );
-  }
-  return (
-    <button className="w-[76px] rounded-lg bg-[#1a1d2e] border border-[#1e2035] py-2 text-center hover:bg-[#252840] hover:border-slate-500 transition-colors cursor-pointer">
-      <span className="text-sm font-bold text-white">{decimalToAmerican(odds)}</span>
-    </button>
-  );
-}
 
 function LegBanner({ legInfo }: { legInfo: LegInfo }) {
   return (
@@ -212,7 +197,6 @@ function DetailsPanel({ homeTeam, awayTeam, leagueKey }: { homeTeam: string; awa
 export default function GameRow({ game, league, logoMap, gameStats }: GameRowProps) {
   const [expanded, setExpanded] = useState(false);
 
-  const odds = processOdds(game);
   const gameResult: GameResult = gameStats?.result ?? { status: 'scheduled', homeScore: null, awayScore: null, clock: null };
 
   const homeLogo = findLogo(game.home_team, logoMap);
@@ -255,26 +239,6 @@ export default function GameRow({ game, league, logoMap, gameStats }: GameRowPro
               <TeamMeta stats={gameStats?.away} />
             </div>
           </div>
-        </div>
-
-        {/* 1X2 */}
-        <div className="shrink-0 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-          <OddsBtn odds={odds.home} />
-          <OddsBtn odds={odds.draw} />
-          <OddsBtn odds={odds.away} />
-        </div>
-
-        {/* Divider */}
-        <div className="h-8 w-px bg-[#1e2035] shrink-0" />
-
-        {/* O/U */}
-        <div className="shrink-0 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-          <div className="text-right mr-1">
-            <p className="text-[10px] text-slate-600 uppercase tracking-wide">O/U</p>
-            <p className="text-xs font-medium text-slate-500">{odds.overPoint ?? 2.5}</p>
-          </div>
-          <OddsBtn odds={odds.overOdds} />
-          <OddsBtn odds={odds.underOdds} />
         </div>
 
         {/* Chevron */}
