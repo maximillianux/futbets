@@ -64,10 +64,11 @@ export default function Home() {
     setLoading(true);
     setError(null);
     try {
-      const [fixturesRes, logosRes, statsRes] = await Promise.all([
+      // Fetch fixtures and logos in parallel first — stats must run after fixtures
+      // so its cache read finds the games list that fixtures just populated.
+      const [fixturesRes, logosRes] = await Promise.all([
         fetch('/api/fixtures'),
         fetch('/api/logos'),
-        fetch('/api/stats'),
       ]);
 
       if (!fixturesRes.ok) {
@@ -75,19 +76,24 @@ export default function Home() {
         throw new Error(body.error ?? `HTTP ${fixturesRes.status}`);
       }
 
-      const [oddsJson, logosJson, statsJson] = await Promise.all([
+      const [oddsJson, logosJson] = await Promise.all([
         fixturesRes.json() as Promise<OddsData>,
         logosRes.ok ? (logosRes.json() as Promise<LogoMap>) : Promise.resolve({} as LogoMap),
-        statsRes.ok ? (statsRes.json() as Promise<StatsResponse>) : Promise.resolve({} as StatsResponse),
       ]);
 
+      // Render fixtures immediately; stats follow without blocking the spinner
       setData(oddsJson);
       setLogoMap(logosJson);
-      setStatsMap(statsJson);
       setLastUpdated(new Date());
+      setLoading(false);
+
+      // Now fetch stats — fixtures are guaranteed to be in cache
+      const statsRes = await fetch('/api/stats');
+      if (statsRes.ok) {
+        setStatsMap(await statsRes.json() as StatsResponse);
+      }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to load odds');
-    } finally {
+      setError(e instanceof Error ? e.message : 'Failed to load fixtures');
       setLoading(false);
     }
   }, []);
