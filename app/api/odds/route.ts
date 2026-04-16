@@ -25,6 +25,9 @@ async function fetchLeagueOdds(leagueKey: string): Promise<Game[]> {
 
   const url = `${BASE_URL}/sports/${leagueKey}/odds/?apiKey=${API_KEY}&regions=us,eu,uk&markets=h2h,totals&dateFormat=iso&oddsFormat=decimal`;
   const res = await fetch(url);
+
+  if (res.status === 401 || res.status === 422) throw new Error('ODDS_API_KEY is invalid.');
+  if (res.status === 429) throw new Error('Odds API quota exceeded. Check your usage at the-odds-api.com.');
   if (!res.ok) return [];
 
   const data: Game[] = await res.json();
@@ -41,16 +44,23 @@ export async function GET() {
   const activeKeys = await fetchActiveLeagueKeys();
   const activeLeagues = LEAGUES.filter((l) => activeKeys.includes(l.key));
 
+  let quotaError: string | null = null;
+
   const entries = await Promise.all(
     activeLeagues.map(async (league) => {
       try {
         const games = await fetchLeagueOdds(league.key);
         return [league.key, games] as const;
-      } catch {
+      } catch (e) {
+        if (e instanceof Error && e.message.includes('quota')) quotaError = e.message;
         return [league.key, [] as Game[]] as const;
       }
     })
   );
+
+  if (quotaError) {
+    return NextResponse.json({ error: quotaError }, { status: 429 });
+  }
 
   return NextResponse.json(Object.fromEntries(entries));
 }
