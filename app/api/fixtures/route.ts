@@ -52,12 +52,18 @@ async function fetchLeagueFixtures(leagueKey: string, slug: string): Promise<Gam
   }
 
   const dates = dateRange();
+  const base = `https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}`;
 
-  // Fetch date-specific pages + the default scoreboard (no date param) for today's
-  // live/completed games, which the date param often omits.
   const urls = [
-    ...dates.map((d) => `https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}/scoreboard?dates=${d}`),
-    `https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}/scoreboard`,
+    // Default scoreboard — reliably returns today's live/completed games
+    `${base}/scoreboard`,
+    // Date-specific scoreboard (works well for upcoming fixtures)
+    ...dates.map((d) => `${base}/scoreboard?dates=${d}`),
+    // calendartype=whitelist asks ESPN to use the league match calendar,
+    // which includes completed matchdays — needed for yesterday's results
+    ...dates.map((d) => `${base}/scoreboard?dates=${d}&calendartype=whitelist`),
+    // schedule endpoint also surfaces past + future events
+    ...dates.map((d) => `${base}/schedule?dates=${d}`),
   ];
 
   await Promise.all(
@@ -66,7 +72,12 @@ async function fetchLeagueFixtures(leagueKey: string, slug: string): Promise<Gam
         const res = await fetch(url, { cache: 'no-store' });
         if (!res.ok) return;
         const data = await res.json();
-        parseEvents(data.events ?? []);
+        // scoreboard → data.events; schedule → data.events or nested per-day
+        const events: unknown[] =
+          data.events ??
+          Object.values(data.scheduledEvents ?? {}).flat() ??
+          [];
+        parseEvents(events);
       } catch { /* ignore */ }
     })
   );
