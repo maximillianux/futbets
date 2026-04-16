@@ -14,7 +14,6 @@ export const ESPN_SLUGS: Record<string, string> = {
   soccer_netherlands_eredivisie: 'ned.1',
   soccer_portugal_primeira_liga: 'por.1',
   soccer_mexico_ligamx: 'mex.1',
-  // Saudi Pro League not supported by ESPN — no form/records available
 };
 
 interface ESPNTeam {

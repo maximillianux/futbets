@@ -17,5 +17,4 @@ export const LEAGUES: League[] = [
   { key: 'soccer_netherlands_eredivisie', name: 'Eredivisie', country: 'Netherlands', flag: '🇳🇱' },
   { key: 'soccer_portugal_primeira_liga', name: 'Primeira Liga', country: 'Portugal', flag: '🇵🇹' },
   { key: 'soccer_mexico_ligamx', name: 'Liga MX', country: 'Mexico', flag: '🇲🇽' },
-  { key: 'soccer_saudi_arabia_pro_league', name: 'Saudi Pro League', country: 'Saudi Arabia', flag: '🇸🇦' },
 ];
