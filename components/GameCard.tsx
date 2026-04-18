@@ -9,12 +9,14 @@ import { TeamStats, FormResult, LegInfo, GameResult } from '@/lib/stats';
 import { GameStatEntry } from '@/app/api/stats/route';
 import { GameDetailsResponse, MatchResult } from '@/app/api/game-details/route';
 import { StandingRow } from '@/app/api/standings/route';
+import { PrefetchedGame } from '@/app/page';
 
 interface GameRowProps {
   game: Game;
   league: League;
   logoMap: LogoMap;
   gameStats: GameStatEntry | null;
+  prefetched: PrefetchedGame | null;
 }
 
 function TeamLogo({ name, logoUrl }: { name: string; logoUrl: string | null }) {
@@ -192,16 +194,23 @@ function StandingsTable({ rows, homeTeam, awayTeam }: { rows: StandingRow[]; hom
 }
 
 function DetailsPanel({
-  homeTeam, awayTeam, leagueKey, onFormLoaded,
+  homeTeam, awayTeam, leagueKey, onFormLoaded, prefetched,
 }: {
   homeTeam: string; awayTeam: string; leagueKey: string;
   onFormLoaded: (home: FormResult[], away: FormResult[]) => void;
+  prefetched: PrefetchedGame | null;
 }) {
-  const [details, setDetails] = useState<GameDetailsResponse | null>(null);
-  const [standings, setStandings] = useState<StandingRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [details, setDetails] = useState<GameDetailsResponse | null>(prefetched?.details ?? null);
+  const [standings, setStandings] = useState<StandingRow[]>(prefetched?.standings ?? []);
+  const [loading, setLoading] = useState(!prefetched);
 
   useEffect(() => {
+    if (prefetched) {
+      setDetails(prefetched.details);
+      setStandings(prefetched.standings);
+      setLoading(false);
+      return;
+    }
     Promise.all([
       fetch(`/api/game-details?homeTeam=${encodeURIComponent(homeTeam)}&awayTeam=${encodeURIComponent(awayTeam)}&leagueKey=${encodeURIComponent(leagueKey)}`).then((r) => r.json()),
       fetch(`/api/standings?leagueKey=${encodeURIComponent(leagueKey)}`).then((r) => r.json()),
@@ -215,7 +224,7 @@ function DetailsPanel({
         onFormLoaded(homeForm, awayForm);
       })
       .catch(() => setLoading(false));
-  }, [homeTeam, awayTeam, leagueKey, onFormLoaded]);
+  }, [homeTeam, awayTeam, leagueKey, onFormLoaded, prefetched]);
 
   if (loading) {
     return (
@@ -269,9 +278,23 @@ function DetailsPanel({
   );
 }
 
-export default function GameRow({ game, league, logoMap, gameStats }: GameRowProps) {
+export default function GameRow({ game, league, logoMap, gameStats, prefetched }: GameRowProps) {
   const [expanded, setExpanded] = useState(false);
-  const [computedForm, setComputedForm] = useState<{ home: FormResult[]; away: FormResult[] } | null>(null);
+  const [computedForm, setComputedForm] = useState<{ home: FormResult[]; away: FormResult[] } | null>(() => {
+    if (!prefetched) return null;
+    return {
+      home: prefetched.details.homeLast5.map((m) => m.result).reverse() as FormResult[],
+      away: prefetched.details.awayLast5.map((m) => m.result).reverse() as FormResult[],
+    };
+  });
+
+  useEffect(() => {
+    if (!prefetched) return;
+    setComputedForm({
+      home: prefetched.details.homeLast5.map((m) => m.result).reverse() as FormResult[],
+      away: prefetched.details.awayLast5.map((m) => m.result).reverse() as FormResult[],
+    });
+  }, [prefetched]);
 
   const handleFormLoaded = useCallback((home: FormResult[], away: FormResult[]) => {
     setComputedForm({ home, away });
@@ -341,6 +364,7 @@ export default function GameRow({ game, league, logoMap, gameStats }: GameRowPro
             awayTeam={game.away_team}
             leagueKey={league.key}
             onFormLoaded={handleFormLoaded}
+            prefetched={prefetched}
           />
         </div>
       )}

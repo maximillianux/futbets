@@ -7,8 +7,12 @@ import { LEAGUES } from '@/lib/leagues';
 import { Game } from '@/lib/odds';
 import { LogoMap } from '@/lib/espn';
 import { StatsResponse } from './api/stats/route';
+import { GameDetailsResponse } from './api/game-details/route';
+import { StandingRow } from './api/standings/route';
 
 type OddsData = Record<string, Game[]>;
+export type PrefetchedGame = { details: GameDetailsResponse; standings: StandingRow[] };
+export type PrefetchedMap = Record<string, PrefetchedGame>; // keyed by game.id
 
 function toLocalDateStr(date: Date): string {
   return date.toLocaleDateString('en-CA'); // YYYY-MM-DD in local timezone
@@ -56,6 +60,7 @@ export default function Home() {
   const [data, setData] = useState<OddsData | null>(null);
   const [logoMap, setLogoMap] = useState<LogoMap>({});
   const [statsMap, setStatsMap] = useState<StatsResponse>({});
+  const [prefetchedMap, setPrefetchedMap] = useState<PrefetchedMap>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -94,20 +99,38 @@ export default function Home() {
         setStatsMap(await statsRes.json() as StatsResponse);
       }
 
-      // Background pre-warm: populate Turso cache for all game-details + standings
-      // so the first expand is instant. Fire and forget — no await.
+      // Background pre-fetch: load all game-details + standings into state so
+      // form dots appear immediately and expanding is instant.
       const allGames = Object.entries(oddsJson).flatMap(([leagueKey, games]) =>
         games.map((game) => ({ leagueKey, game }))
       );
       const uniqueLeagues = [...new Set(allGames.map((g) => g.leagueKey))];
-      uniqueLeagues.forEach((key) =>
-        fetch(`/api/standings?leagueKey=${encodeURIComponent(key)}`).catch(() => {})
+
+      // Fetch standings per league, keyed for lookup below
+      const standingsByLeague: Record<string, StandingRow[]> = {};
+      await Promise.all(
+        uniqueLeagues.map((key) =>
+          fetch(`/api/standings?leagueKey=${encodeURIComponent(key)}`)
+            .then((r) => r.json())
+            .then((d) => { if (Array.isArray(d)) standingsByLeague[key] = d; })
+            .catch(() => {})
+        )
       );
-      allGames.forEach(({ leagueKey, game }) =>
+
+      // Fetch game-details for every game, update state as each arrives
+      allGames.forEach(({ leagueKey, game }) => {
         fetch(
           `/api/game-details?homeTeam=${encodeURIComponent(game.home_team)}&awayTeam=${encodeURIComponent(game.away_team)}&leagueKey=${encodeURIComponent(leagueKey)}`
-        ).catch(() => {})
-      );
+        )
+          .then((r) => r.json())
+          .then((details: GameDetailsResponse) => {
+            setPrefetchedMap((prev) => ({
+              ...prev,
+              [game.id]: { details, standings: standingsByLeague[leagueKey] ?? [] },
+            }));
+          })
+          .catch(() => {});
+      });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load fixtures');
       setLoading(false);
@@ -179,6 +202,7 @@ export default function Home() {
                 games={filteredData![league.key]}
                 logoMap={logoMap}
                 statsMap={statsMap}
+                prefetchedMap={prefetchedMap}
               />
             ))}
           </div>

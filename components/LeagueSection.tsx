@@ -2,6 +2,7 @@ import { League } from '@/lib/leagues';
 import { Game } from '@/lib/odds';
 import { LogoMap } from '@/lib/espn';
 import { StatsResponse } from '@/app/api/stats/route';
+import { PrefetchedMap } from '@/app/page';
 import GameRow from './GameCard';
 
 interface LeagueSectionProps {
@@ -9,9 +10,10 @@ interface LeagueSectionProps {
   games: Game[];
   logoMap: LogoMap;
   statsMap: StatsResponse;
+  prefetchedMap: PrefetchedMap;
 }
 
-export default function LeagueSection({ league, games, logoMap, statsMap }: LeagueSectionProps) {
+export default function LeagueSection({ league, games, logoMap, statsMap, prefetchedMap }: LeagueSectionProps) {
   const sorted = [...games].sort(
     (a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime()
   );
@@ -41,6 +43,7 @@ export default function LeagueSection({ league, games, logoMap, statsMap }: Leag
             league={league}
             logoMap={logoMap}
             gameStats={statsMap[game.id] ?? null}
+            prefetched={prefetchedMap[game.id] ?? null}
           />
         ))}
       </div>
