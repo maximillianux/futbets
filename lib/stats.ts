@@ -154,12 +154,21 @@ export async function fetchLeagueStats(
   const slug = ESPN_SLUGS[leagueKey];
   if (!slug || games.length === 0) return {};
 
-  // Build date strings for yesterday and 2 days ago (UTC) to cover all US timezones
+  // Build date strings for past 2 days (UTC) to cover all US timezones
   const pastDates = [1, 2].map((offset) => {
     const d = new Date();
     d.setDate(d.getDate() - offset);
     return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
   });
+
+  // Extract unique future dates from the games list so we can fetch form data for them
+  const futureDates = [...new Set(
+    games
+      .map((g) => {
+        const d = new Date(g.commence_time);
+        return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}`;
+      })
+  )];
 
   const scoreboardUrls = [
     // Default scoreboard — today's live/upcoming events
@@ -167,6 +176,8 @@ export async function fetchLeagueStats(
     // Past dates — needed for yesterday's completed results
     ...pastDates.map((d) => `https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}/scoreboard?dates=${d}`),
     ...pastDates.map((d) => `https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}/scoreboard?dates=${d}&calendartype=whitelist`),
+    // Future dates — needed to get form data for upcoming fixtures
+    ...futureDates.map((d) => `https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}/scoreboard?dates=${d}`),
   ];
 
   let events: ESPNEvent[] = [];
