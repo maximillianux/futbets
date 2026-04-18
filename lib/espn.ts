@@ -35,8 +35,12 @@ interface ESPNResponse {
 export function normalize(name: string): string {
   return name
     .toLowerCase()
-    .replace(/-/g, ' ')  // hyphens → spaces BEFORE stripping special chars (Saint-Germain → saint germain)
-    .replace(/\b(fc|cf|sc|afc|ac|as|ss|rc|rsc|cd|ud|sd|real|atletico|atlético|atletico de|bsc)\b/g, '')
+    .normalize('NFD')                         // decompose accents: é→e+combining, ö→o+combining
+    .replace(/[\u0300-\u036f]/g, '')          // strip combining marks → é→e, ö→o, ñ→n
+    .replace(/-/g, ' ')                       // hyphens → spaces (Saint-Germain → saint germain)
+    .replace(/\b\d+\b/g, '')                  // strip standalone numbers (Bayer 04, 1. FC)
+    .replace(/\b(fc|cf|sc|afc|ac|as|ss|rc|rsc|cd|ud|sd|bsc)\b/g, '') // org prefixes only
+    .replace(/\bdel?\b/g, '')                 // strip "de"/"del" articles (Atletico de Madrid)
     .replace(/[^a-z0-9 ]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
