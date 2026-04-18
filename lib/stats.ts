@@ -1,6 +1,6 @@
 import { normalize, ESPN_SLUGS } from './espn';
 import { resolveAlias } from './aliases';
-import { Game } from './odds';
+import { Game } from './game';
 
 export type FormResult = 'W' | 'D' | 'L';
 

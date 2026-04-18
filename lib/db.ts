@@ -1,5 +1,5 @@
 import { createClient } from '@libsql/client';
-import { Game } from './odds';
+import { Game } from './game';
 
 const client = createClient({
   url: process.env.TURSO_DATABASE_URL!,
@@ -8,15 +8,11 @@ const client = createClient({
 
 export async function initDb(): Promise<void> {
   await client.executeMultiple(`
-    CREATE TABLE IF NOT EXISTS odds_cache (
+    CREATE TABLE IF NOT EXISTS fixtures_cache (
       league_key TEXT NOT NULL,
       date       TEXT NOT NULL,
       data       TEXT NOT NULL,
       PRIMARY KEY (league_key, date)
-    );
-    CREATE TABLE IF NOT EXISTS active_leagues_cache (
-      date TEXT PRIMARY KEY,
-      keys TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS stats_cache (
       league_key TEXT NOT NULL,
@@ -60,39 +56,21 @@ function today(): string {
   return `${year}-${month}-${day}`;
 }
 
-export async function getCachedOdds(leagueKey: string): Promise<Game[] | null> {
+export async function getCachedFixtures(leagueKey: string): Promise<Game[] | null> {
   await initDb();
   const result = await client.execute({
-    sql: 'SELECT data FROM odds_cache WHERE league_key = ? AND date = ?',
+    sql: 'SELECT data FROM fixtures_cache WHERE league_key = ? AND date = ?',
     args: [leagueKey, today()],
   });
   const row = result.rows[0];
   return row ? (JSON.parse(row.data as string) as Game[]) : null;
 }
 
-export async function setCachedOdds(leagueKey: string, games: Game[]): Promise<void> {
+export async function setCachedFixtures(leagueKey: string, games: Game[]): Promise<void> {
   await initDb();
   await client.execute({
-    sql: 'INSERT OR REPLACE INTO odds_cache (league_key, date, data) VALUES (?, ?, ?)',
+    sql: 'INSERT OR REPLACE INTO fixtures_cache (league_key, date, data) VALUES (?, ?, ?)',
     args: [leagueKey, today(), JSON.stringify(games)],
-  });
-}
-
-export async function getCachedActiveLeagues(): Promise<string[] | null> {
-  await initDb();
-  const result = await client.execute({
-    sql: 'SELECT keys FROM active_leagues_cache WHERE date = ?',
-    args: [today()],
-  });
-  const row = result.rows[0];
-  return row ? (JSON.parse(row.keys as string) as string[]) : null;
-}
-
-export async function setCachedActiveLeagues(keys: string[]): Promise<void> {
-  await initDb();
-  await client.execute({
-    sql: 'INSERT OR REPLACE INTO active_leagues_cache (date, keys) VALUES (?, ?)',
-    args: [today(), JSON.stringify(keys)],
   });
 }
 

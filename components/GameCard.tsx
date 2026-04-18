@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
-import { Game } from '@/lib/odds';
+import { Game } from '@/lib/game';
 import { findLogo, LogoMap } from '@/lib/espn';
 import { League } from '@/lib/leagues';
 import { TeamStats, FormResult, LegInfo, GameResult } from '@/lib/stats';

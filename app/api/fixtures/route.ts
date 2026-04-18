@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { LEAGUES } from '@/lib/leagues';
 import { ESPN_SLUGS } from '@/lib/espn';
-import { Game } from '@/lib/odds';
-import { getCachedOdds, setCachedOdds } from '@/lib/db';
+import { Game } from '@/lib/game';
+import { getCachedFixtures, setCachedFixtures } from '@/lib/db';
 
 /**
  * 2 days back through +6 days ahead (9 total) as YYYYMMDD strings.
@@ -27,7 +27,7 @@ interface ESPNCompetitor {
 }
 
 async function fetchLeagueFixtures(leagueKey: string, slug: string): Promise<Game[]> {
-  const cached = await getCachedOdds(leagueKey);
+  const cached = await getCachedFixtures(leagueKey);
   if (cached) return cached;
 
   const seen = new Set<string>();
@@ -47,11 +47,9 @@ async function fetchLeagueFixtures(leagueKey: string, slug: string): Promise<Gam
       allGames.push({
         id: String(event.id),
         sport_key: leagueKey,
-        sport_title: '',
         commence_time: event.date as string,
         home_team: home.team.displayName,
         away_team: away.team.displayName,
-        bookmakers: [],
       });
     }
   }
@@ -88,7 +86,7 @@ async function fetchLeagueFixtures(leagueKey: string, slug: string): Promise<Gam
   );
 
   allGames.sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime());
-  await setCachedOdds(leagueKey, allGames);
+  await setCachedFixtures(leagueKey, allGames);
   return allGames;
 }
 

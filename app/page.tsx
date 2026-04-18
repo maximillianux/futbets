@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Header from '@/components/Header';
 import LeagueSection from '@/components/LeagueSection';
 import { LEAGUES } from '@/lib/leagues';
-import { Game } from '@/lib/odds';
+import { Game } from '@/lib/game';
 import { LogoMap } from '@/lib/espn';
 import { StatsResponse } from './api/stats/route';
 import { GameDetailsResponse } from './api/game-details/route';

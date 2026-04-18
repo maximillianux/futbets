@@ -1,5 +1,5 @@
 import { League } from '@/lib/leagues';
-import { Game } from '@/lib/odds';
+import { Game } from '@/lib/game';
 import { LogoMap } from '@/lib/espn';
 import { StatsResponse } from '@/app/api/stats/route';
 import { PrefetchedMap } from '@/app/page';

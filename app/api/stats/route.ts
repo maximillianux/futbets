@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { LEAGUES } from '@/lib/leagues';
-import { getCachedOdds, getCachedStats, setCachedStats } from '@/lib/db';
+import { getCachedFixtures, getCachedStats, setCachedStats } from '@/lib/db';
 import { fetchLeagueStats } from '@/lib/stats';
 import { TeamStats, LegInfo, GameResult } from '@/lib/stats';
 
@@ -18,7 +18,7 @@ export async function GET() {
 
   await Promise.all(
     LEAGUES.map(async (league) => {
-      const games = await getCachedOdds(league.key);
+      const games = await getCachedFixtures(league.key);
       if (!games || games.length === 0) return;
 
       const cached = await getCachedStats(league.key);
