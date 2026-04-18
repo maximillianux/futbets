@@ -151,7 +151,7 @@ function StandingsTable({ rows, homeTeam, awayTeam }: { rows: StandingRow[]; hom
     norm(team) === norm(homeTeam) || norm(team) === norm(awayTeam);
 
   return (
-    <div className="w-60 shrink-0">
+    <div className="w-full">
       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">League Table</p>
       <table className="w-full text-[10px]">
         <thead>
@@ -240,9 +240,9 @@ function DetailsPanel({
   const hasStandings = standings.length > 0;
 
   return (
-    <div className="px-4 pb-4 flex gap-6">
+    <div className="px-4 pb-4 flex flex-col gap-4 sm:flex-row sm:gap-6">
       {/* Form + H2H columns */}
-      <div className={`flex-1 grid gap-4 min-w-0 ${hasH2H ? 'grid-cols-3' : 'grid-cols-2'}`}>
+      <div className={`flex-1 grid gap-4 min-w-0 grid-cols-2 ${hasH2H ? 'sm:grid-cols-3' : ''}`}>
         {/* Home last 5 */}
         <div>
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 truncate">{homeTeam} — Last 5</p>
@@ -252,14 +252,6 @@ function DetailsPanel({
           }
         </div>
 
-        {/* H2H */}
-        {hasH2H && (
-          <div>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Head to Head</p>
-            {details.h2h.map((m, i) => <ResultRow key={i} match={m} />)}
-          </div>
-        )}
-
         {/* Away last 5 */}
         <div>
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 truncate">{awayTeam} — Last 5</p>
@@ -268,11 +260,21 @@ function DetailsPanel({
             : details.awayLast5.map((m, i) => <ResultRow key={i} match={m} />)
           }
         </div>
+
+        {/* H2H — spans full width on mobile, stays in grid on desktop */}
+        {hasH2H && (
+          <div className="col-span-2 sm:col-span-1">
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Head to Head</p>
+            {details.h2h.map((m, i) => <ResultRow key={i} match={m} />)}
+          </div>
+        )}
       </div>
 
-      {/* League table */}
+      {/* League table — full width on mobile, fixed sidebar on desktop */}
       {hasStandings && (
-        <StandingsTable rows={standings} homeTeam={homeTeam} awayTeam={awayTeam} />
+        <div className="sm:w-60 sm:shrink-0">
+          <StandingsTable rows={standings} homeTeam={homeTeam} awayTeam={awayTeam} />
+        </div>
       )}
     </div>
   );
