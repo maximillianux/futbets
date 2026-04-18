@@ -222,16 +222,20 @@ export async function fetchLeagueStats(
 
     if (home) {
       const normName = normalize(home.team.displayName);
+      const newForm = parseForm(home.form);
+      const existing = teamMap.get(normName);
       teamMap.set(normName, {
-        form: parseForm(home.form),
-        record: standingsMap.get(normName) ?? parseRecord(home.records),
+        form: newForm.length > 0 ? newForm : (existing?.form ?? []),
+        record: standingsMap.get(normName) ?? parseRecord(home.records) ?? existing?.record ?? null,
       });
     }
     if (away) {
       const normName = normalize(away.team.displayName);
+      const newForm = parseForm(away.form);
+      const existing = teamMap.get(normName);
       teamMap.set(normName, {
-        form: parseForm(away.form),
-        record: standingsMap.get(normName) ?? parseRecord(away.records),
+        form: newForm.length > 0 ? newForm : (existing?.form ?? []),
+        record: standingsMap.get(normName) ?? parseRecord(away.records) ?? existing?.record ?? null,
       });
     }
 
