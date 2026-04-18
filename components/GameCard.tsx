@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Game } from '@/lib/odds';
 import { findLogo, LogoMap } from '@/lib/espn';
 import { League } from '@/lib/leagues';
@@ -191,7 +191,12 @@ function StandingsTable({ rows, homeTeam, awayTeam }: { rows: StandingRow[]; hom
   );
 }
 
-function DetailsPanel({ homeTeam, awayTeam, leagueKey }: { homeTeam: string; awayTeam: string; leagueKey: string }) {
+function DetailsPanel({
+  homeTeam, awayTeam, leagueKey, onFormLoaded,
+}: {
+  homeTeam: string; awayTeam: string; leagueKey: string;
+  onFormLoaded: (home: FormResult[], away: FormResult[]) => void;
+}) {
   const [details, setDetails] = useState<GameDetailsResponse | null>(null);
   const [standings, setStandings] = useState<StandingRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -201,9 +206,16 @@ function DetailsPanel({ homeTeam, awayTeam, leagueKey }: { homeTeam: string; awa
       fetch(`/api/game-details?homeTeam=${encodeURIComponent(homeTeam)}&awayTeam=${encodeURIComponent(awayTeam)}&leagueKey=${encodeURIComponent(leagueKey)}`).then((r) => r.json()),
       fetch(`/api/standings?leagueKey=${encodeURIComponent(leagueKey)}`).then((r) => r.json()),
     ])
-      .then(([d, s]) => { setDetails(d); setStandings(Array.isArray(s) ? s : []); setLoading(false); })
+      .then(([d, s]: [GameDetailsResponse, unknown]) => {
+        setDetails(d);
+        setStandings(Array.isArray(s) ? s : []);
+        setLoading(false);
+        const homeForm = d.homeLast5.map((m) => m.result).reverse() as FormResult[];
+        const awayForm = d.awayLast5.map((m) => m.result).reverse() as FormResult[];
+        onFormLoaded(homeForm, awayForm);
+      })
       .catch(() => setLoading(false));
-  }, [homeTeam, awayTeam, leagueKey]);
+  }, [homeTeam, awayTeam, leagueKey, onFormLoaded]);
 
   if (loading) {
     return (
@@ -259,6 +271,11 @@ function DetailsPanel({ homeTeam, awayTeam, leagueKey }: { homeTeam: string; awa
 
 export default function GameRow({ game, league, logoMap, gameStats }: GameRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const [computedForm, setComputedForm] = useState<{ home: FormResult[]; away: FormResult[] } | null>(null);
+
+  const handleFormLoaded = useCallback((home: FormResult[], away: FormResult[]) => {
+    setComputedForm({ home, away });
+  }, []);
 
   const gameResult: GameResult = gameStats?.result ?? { status: 'scheduled', homeScore: null, awayScore: null, clock: null };
 
@@ -287,7 +304,9 @@ export default function GameRow({ game, league, logoMap, gameStats }: GameRowPro
               <TeamLogo name={game.home_team} logoUrl={homeLogo} />
               <span className="text-sm font-semibold text-white truncate">{game.home_team}</span>
             </div>
-            <TeamMeta stats={gameStats?.home} />
+            <TeamMeta stats={computedForm
+              ? { form: computedForm.home, record: gameStats?.home.record ?? null }
+              : gameStats?.home} />
           </div>
 
           <span className="text-xs text-slate-600 shrink-0">vs</span>
@@ -299,7 +318,9 @@ export default function GameRow({ game, league, logoMap, gameStats }: GameRowPro
               <TeamLogo name={game.away_team} logoUrl={awayLogo} />
             </div>
             <div className="flex justify-end">
-              <TeamMeta stats={gameStats?.away} />
+              <TeamMeta stats={computedForm
+                ? { form: computedForm.away, record: gameStats?.away.record ?? null }
+                : gameStats?.away} />
             </div>
           </div>
         </div>
@@ -319,6 +340,7 @@ export default function GameRow({ game, league, logoMap, gameStats }: GameRowPro
             homeTeam={game.home_team}
             awayTeam={game.away_team}
             leagueKey={league.key}
+            onFormLoaded={handleFormLoaded}
           />
         </div>
       )}
