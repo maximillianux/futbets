@@ -93,6 +93,21 @@ export default function Home() {
       if (statsRes.ok) {
         setStatsMap(await statsRes.json() as StatsResponse);
       }
+
+      // Background pre-warm: populate Turso cache for all game-details + standings
+      // so the first expand is instant. Fire and forget — no await.
+      const allGames = Object.entries(oddsJson).flatMap(([leagueKey, games]) =>
+        games.map((game) => ({ leagueKey, game }))
+      );
+      const uniqueLeagues = [...new Set(allGames.map((g) => g.leagueKey))];
+      uniqueLeagues.forEach((key) =>
+        fetch(`/api/standings?leagueKey=${encodeURIComponent(key)}`).catch(() => {})
+      );
+      allGames.forEach(({ leagueKey, game }) =>
+        fetch(
+          `/api/game-details?homeTeam=${encodeURIComponent(game.home_team)}&awayTeam=${encodeURIComponent(game.away_team)}&leagueKey=${encodeURIComponent(leagueKey)}`
+        ).catch(() => {})
+      );
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load fixtures');
       setLoading(false);

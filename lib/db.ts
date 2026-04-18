@@ -24,6 +24,12 @@ export async function initDb(): Promise<void> {
       data       TEXT NOT NULL,
       PRIMARY KEY (league_key, date)
     );
+    CREATE TABLE IF NOT EXISTS game_details_cache (
+      pair_key TEXT NOT NULL,
+      date     TEXT NOT NULL,
+      data     TEXT NOT NULL,
+      PRIMARY KEY (pair_key, date)
+    );
   `);
 }
 
@@ -105,5 +111,23 @@ export async function setCachedStats(leagueKey: string, data: unknown): Promise<
   await client.execute({
     sql: 'INSERT OR REPLACE INTO stats_cache (league_key, date, data) VALUES (?, ?, ?)',
     args: [leagueKey, today(), JSON.stringify(data)],
+  });
+}
+
+export async function getCachedGameDetails(pairKey: string): Promise<unknown | null> {
+  await initDb();
+  const result = await client.execute({
+    sql: 'SELECT data FROM game_details_cache WHERE pair_key = ? AND date = ?',
+    args: [pairKey, today()],
+  });
+  const row = result.rows[0];
+  return row ? JSON.parse(row.data as string) : null;
+}
+
+export async function setCachedGameDetails(pairKey: string, data: unknown): Promise<void> {
+  await initDb();
+  await client.execute({
+    sql: 'INSERT OR REPLACE INTO game_details_cache (pair_key, date, data) VALUES (?, ?, ?)',
+    args: [pairKey, today(), JSON.stringify(data)],
   });
 }

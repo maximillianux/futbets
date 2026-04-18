@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { normalize, ESPN_SLUGS } from '@/lib/espn';
 import { resolveAlias } from '@/lib/aliases';
+import { getCachedGameDetails, setCachedGameDetails } from '@/lib/db';
 
 export interface MatchResult {
   date: string;
@@ -174,6 +175,10 @@ export async function GET(request: Request) {
   const slug = ESPN_SLUGS[leagueKey];
   if (!slug) return NextResponse.json(empty);
 
+  const pairKey = `${leagueKey}|${resolveAlias(normalize(homeTeam))}|${resolveAlias(normalize(awayTeam))}`;
+  const cached = await getCachedGameDetails(pairKey);
+  if (cached) return NextResponse.json(cached);
+
   const [homeId, awayId] = await Promise.all([
     getTeamId(slug, homeTeam),
     getTeamId(slug, awayTeam),
@@ -190,9 +195,11 @@ export async function GET(request: Request) {
   const allAwayResults = parseResults(awayEvents, awayId);
   const h2hResults = parseResults(homeEvents, homeId, awayId);
 
-  return NextResponse.json({
+  const payload: GameDetailsResponse = {
     homeLast5: allHomeResults.slice(-5).reverse(),
     awayLast5: allAwayResults.slice(-5).reverse(),
     h2h: h2hResults.reverse(),
-  } satisfies GameDetailsResponse);
+  };
+  await setCachedGameDetails(pairKey, payload);
+  return NextResponse.json(payload);
 }
