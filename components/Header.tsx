@@ -17,7 +17,7 @@ export default function Header({ onRefresh, loading, lastUpdated }: HeaderProps)
   });
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#1e2035] bg-[#0a0b14]/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-50 border-b border-[#1a2d1c] bg-[#070d07]/95 backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
