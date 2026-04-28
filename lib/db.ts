@@ -26,6 +26,10 @@ export async function initDb(): Promise<void> {
       data     TEXT NOT NULL,
       PRIMARY KEY (pair_key, date)
     );
+    CREATE TABLE IF NOT EXISTS logos_cache (
+      date TEXT NOT NULL PRIMARY KEY,
+      data TEXT NOT NULL
+    );
   `);
 }
 
@@ -91,6 +95,24 @@ export async function setCachedStats(leagueKey: string, data: unknown): Promise<
   await client.execute({
     sql: 'INSERT OR REPLACE INTO stats_cache (league_key, date, data) VALUES (?, ?, ?)',
     args: [leagueKey, `${today()}-${STATS_V}`, JSON.stringify(data)],
+  });
+}
+
+export async function getCachedLogos(): Promise<unknown | null> {
+  await initDb();
+  const result = await client.execute({
+    sql: 'SELECT data FROM logos_cache WHERE date = ?',
+    args: [today()],
+  });
+  const row = result.rows[0];
+  return row ? JSON.parse(row.data as string) : null;
+}
+
+export async function setCachedLogos(data: unknown): Promise<void> {
+  await initDb();
+  await client.execute({
+    sql: 'INSERT OR REPLACE INTO logos_cache (date, data) VALUES (?, ?)',
+    args: [today(), JSON.stringify(data)],
   });
 }
 

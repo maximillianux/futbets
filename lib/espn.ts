@@ -73,7 +73,7 @@ export async function fetchTeamLogos(): Promise<LogoMap> {
 
       try {
         const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}/teams`;
-        const res = await fetch(url, { next: { revalidate: 86400 } }); // cache 24h
+        const res = await fetch(url, { cache: 'no-store' });
         if (!res.ok) return;
 
         const data: ESPNResponse = await res.json();
