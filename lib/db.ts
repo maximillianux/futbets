@@ -74,11 +74,13 @@ export async function setCachedFixtures(leagueKey: string, games: Game[]): Promi
   });
 }
 
+const STATS_V = 'v2'; // bump when TeamStats shape changes
+
 export async function getCachedStats(leagueKey: string): Promise<unknown | null> {
   await initDb();
   const result = await client.execute({
     sql: 'SELECT data FROM stats_cache WHERE league_key = ? AND date = ?',
-    args: [leagueKey, today()],
+    args: [leagueKey, `${today()}-${STATS_V}`],
   });
   const row = result.rows[0];
   return row ? JSON.parse(row.data as string) : null;
@@ -88,7 +90,7 @@ export async function setCachedStats(leagueKey: string, data: unknown): Promise<
   await initDb();
   await client.execute({
     sql: 'INSERT OR REPLACE INTO stats_cache (league_key, date, data) VALUES (?, ?, ?)',
-    args: [leagueKey, today(), JSON.stringify(data)],
+    args: [leagueKey, `${today()}-${STATS_V}`, JSON.stringify(data)],
   });
 }
 

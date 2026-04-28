@@ -45,7 +45,7 @@ interface ESPNCompetitor {
   records?: ESPNRecord[];
   aggregateScore?: number;
   score?: string;
-  team: { displayName: string };
+  team: { id: string; displayName: string };
 }
 
 interface ESPNStatus {
@@ -121,6 +121,43 @@ function parseRecord(records: ESPNRecord[] | undefined): { total: string | null;
   return { total: find('total'), home: find('home'), away: find('away') };
 }
 
+/** Fetch home+away split records for a set of team IDs → normalized name → { home, away } */
+async function fetchTeamSplitRecords(
+  slug: string,
+  teams: Array<{ id: string; displayName: string }>
+): Promise<Map<string, { home: string | null; away: string | null }>> {
+  const map = new Map<string, { home: string | null; away: string | null }>();
+  await Promise.all(
+    teams.map(async ({ id, displayName }) => {
+      try {
+        const res = await fetch(
+          `https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}/teams/${id}`,
+          { cache: 'no-store' }
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        const items: Array<{ type: string; stats?: Array<{ name: string; value: number }> }> =
+          data?.team?.record?.items ?? [];
+        const total = items.find((r) => r.type === 'total');
+        if (!total?.stats) return;
+        const s: Record<string, number> = {};
+        for (const stat of total.stats) s[stat.name] = stat.value;
+        const hw = Math.round(s['homeWins'] ?? 0);
+        const hd = Math.round(s['homeTies'] ?? 0);
+        const hl = Math.round(s['homeLosses'] ?? 0);
+        const aw = Math.round(s['awayWins'] ?? 0);
+        const ad = Math.round(s['awayTies'] ?? 0);
+        const al = Math.round(s['awayLosses'] ?? 0);
+        map.set(normalize(displayName), {
+          home: hw + hd + hl > 0 ? `${hw}-${hd}-${hl}` : null,
+          away: aw + ad + al > 0 ? `${aw}-${ad}-${al}` : null,
+        });
+      } catch { /* ignore */ }
+    })
+  );
+  return map;
+}
+
 /** Fetch league standings → normalized team name → "W-D-L" string */
 async function fetchStandingsRecord(slug: string): Promise<Map<string, string>> {
   const map = new Map<string, string>();
@@ -185,6 +222,7 @@ export async function fetchLeagueStats(
 
   let events: ESPNEvent[] = [];
   let standingsMap = new Map<string, string>();
+  let splitMap = new Map<string, { home: string | null; away: string | null }>();
   try {
     const seen = new Set<string>();
     const [rawEvents, stMap] = await Promise.all([
@@ -207,6 +245,19 @@ export async function fetchLeagueStats(
       }
     }
     standingsMap = stMap;
+
+    // Collect unique teams from today's fixtures to fetch home/away splits
+    const teamsSeen = new Map<string, { id: string; displayName: string }>();
+    for (const game of games) {
+      const event = events.find((ev) => String((ev as unknown as Record<string, unknown>).id) === game.id);
+      if (!event) continue;
+      const comp = event.competitions[0];
+      if (!comp) continue;
+      for (const c of comp.competitors) {
+        if (!teamsSeen.has(c.team.id)) teamsSeen.set(c.team.id, c.team);
+      }
+    }
+    splitMap = await fetchTeamSplitRecords(slug, [...teamsSeen.values()]);
   } catch {
     // ESPN unavailable — return empty stats
   }
@@ -227,24 +278,26 @@ export async function fetchLeagueStats(
       const normName = normalize(home.team.displayName);
       const newForm = parseForm(home.form);
       const rec = parseRecord(home.records);
+      const splits = splitMap.get(normName);
       const existing = teamMap.get(normName);
       teamMap.set(normName, {
         form: newForm.length > 0 ? newForm : (existing?.form ?? []),
         record: standingsMap.get(normName) ?? rec.total ?? existing?.record ?? null,
-        homeRecord: rec.home ?? existing?.homeRecord ?? null,
-        awayRecord: rec.away ?? existing?.awayRecord ?? null,
+        homeRecord: splits?.home ?? existing?.homeRecord ?? null,
+        awayRecord: splits?.away ?? existing?.awayRecord ?? null,
       });
     }
     if (away) {
       const normName = normalize(away.team.displayName);
       const newForm = parseForm(away.form);
       const rec = parseRecord(away.records);
+      const splits = splitMap.get(normName);
       const existing = teamMap.get(normName);
       teamMap.set(normName, {
         form: newForm.length > 0 ? newForm : (existing?.form ?? []),
         record: standingsMap.get(normName) ?? rec.total ?? existing?.record ?? null,
-        homeRecord: rec.home ?? existing?.homeRecord ?? null,
-        awayRecord: rec.away ?? existing?.awayRecord ?? null,
+        homeRecord: splits?.home ?? existing?.homeRecord ?? null,
+        awayRecord: splits?.away ?? existing?.awayRecord ?? null,
       });
     }
 
@@ -280,14 +333,14 @@ export async function fetchLeagueStats(
     const homeStats: TeamStats = teamMap.get(homeKey) ?? {
       form: [],
       record: standingsMap.get(homeKey) ?? null,
-      homeRecord: null,
-      awayRecord: null,
+      homeRecord: splitMap.get(homeKey)?.home ?? null,
+      awayRecord: splitMap.get(homeKey)?.away ?? null,
     };
     const awayStats: TeamStats = teamMap.get(awayKey) ?? {
       form: [],
       record: standingsMap.get(awayKey) ?? null,
-      homeRecord: null,
-      awayRecord: null,
+      homeRecord: splitMap.get(awayKey)?.home ?? null,
+      awayRecord: splitMap.get(awayKey)?.away ?? null,
     };
 
     result[game.id] = {
