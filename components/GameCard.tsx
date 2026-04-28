@@ -44,19 +44,16 @@ function FormDot({ result }: { result: FormResult }) {
   return <span className={`inline-block h-2 w-2 rounded-full ${colors[result]}`} title={result} />;
 }
 
-function TeamMeta({ stats, side }: { stats: TeamStats | undefined; side: 'home' | 'away' }) {
+function TeamMeta({ stats }: { stats: TeamStats | undefined }) {
   if (!stats) return null;
-  const splitRecord = side === 'home' ? stats.homeRecord : stats.awayRecord;
-  const hasRecord = splitRecord !== null;
+  const hasRecord = stats.record !== null;
   const hasForm = stats.form.length > 0;
   if (!hasRecord && !hasForm) return null;
 
   return (
     <div className="flex items-center gap-1.5 mt-0.5">
       {hasRecord && (
-        <span className="text-[10px] text-slate-500 font-medium tabular-nums" title={side === 'home' ? 'Home record' : 'Away record'}>
-          {side === 'home' ? 'H' : 'A'} {splitRecord}
-        </span>
+        <span className="text-[10px] text-slate-500 font-medium tabular-nums">{stats.record}</span>
       )}
       {hasRecord && hasForm && <span className="text-slate-700 text-[10px]">·</span>}
       {hasForm && (
@@ -197,11 +194,12 @@ function StandingsTable({ rows, homeTeam, awayTeam }: { rows: StandingRow[]; hom
 }
 
 function DetailsPanel({
-  homeTeam, awayTeam, leagueKey, onFormLoaded, prefetched,
+  homeTeam, awayTeam, leagueKey, onFormLoaded, prefetched, gameStats,
 }: {
   homeTeam: string; awayTeam: string; leagueKey: string;
   onFormLoaded: (home: FormResult[], away: FormResult[]) => void;
   prefetched: PrefetchedGame | null;
+  gameStats: GameStatEntry | null;
 }) {
   const [details, setDetails] = useState<GameDetailsResponse | null>(prefetched?.details ?? null);
   const [standings, setStandings] = useState<StandingRow[]>(prefetched?.standings ?? []);
@@ -242,8 +240,42 @@ function DetailsPanel({
   const hasH2H = details.h2h.length > 0;
   const hasStandings = standings.length > 0;
 
+  const homeR = gameStats?.home;
+  const awayR = gameStats?.away;
+  const showSplits = (homeR?.homeRecord ?? homeR?.awayRecord ?? awayR?.homeRecord ?? awayR?.awayRecord) != null;
+
   return (
     <div className="px-4 pb-4 flex flex-col gap-4 sm:flex-row sm:gap-6">
+      {/* Home/Away record strip */}
+      {showSplits && (
+        <div className="-mx-4 px-4 py-3 border-b border-[#1e2035] flex gap-4 bg-[#0d0f1c]">
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 truncate">{homeTeam}</p>
+            <div className="flex gap-3">
+              {homeR?.homeRecord && (
+                <span className="text-[11px] text-slate-400 tabular-nums"><span className="text-slate-600 mr-1">H</span>{homeR.homeRecord}</span>
+              )}
+              {homeR?.awayRecord && (
+                <span className="text-[11px] text-slate-400 tabular-nums"><span className="text-slate-600 mr-1">A</span>{homeR.awayRecord}</span>
+              )}
+              {!homeR?.homeRecord && !homeR?.awayRecord && <span className="text-[11px] text-slate-600">—</span>}
+            </div>
+          </div>
+          <div className="flex-1 min-w-0 text-right">
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 truncate">{awayTeam}</p>
+            <div className="flex gap-3 justify-end">
+              {awayR?.homeRecord && (
+                <span className="text-[11px] text-slate-400 tabular-nums"><span className="text-slate-600 mr-1">H</span>{awayR.homeRecord}</span>
+              )}
+              {awayR?.awayRecord && (
+                <span className="text-[11px] text-slate-400 tabular-nums"><span className="text-slate-600 mr-1">A</span>{awayR.awayRecord}</span>
+              )}
+              {!awayR?.homeRecord && !awayR?.awayRecord && <span className="text-[11px] text-slate-600">—</span>}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Form + H2H columns */}
       <div className={`flex-1 grid gap-4 min-w-0 grid-cols-1 sm:grid-cols-2 ${hasH2H ? 'sm:grid-cols-3' : ''}`}>
         {/* Home last 5 */}
@@ -332,14 +364,14 @@ export default function GameRow({ game, league, logoMap, gameStats, prefetched }
               <TeamLogo name={game.home_team} logoUrl={homeLogo} />
               <span className="text-sm font-semibold text-white truncate">{game.home_team}</span>
             </div>
-            <TeamMeta side="home" stats={computedForm
+            <TeamMeta stats={computedForm
               ? { form: computedForm.home, record: gameStats?.home.record ?? null, homeRecord: gameStats?.home.homeRecord ?? null, awayRecord: gameStats?.home.awayRecord ?? null }
               : gameStats?.home} />
             <div className="flex items-center gap-2 mt-0.5">
               <TeamLogo name={game.away_team} logoUrl={awayLogo} />
               <span className="text-sm font-semibold text-white truncate">{game.away_team}</span>
             </div>
-            <TeamMeta side="away" stats={computedForm
+            <TeamMeta stats={computedForm
               ? { form: computedForm.away, record: gameStats?.away.record ?? null, homeRecord: gameStats?.away.homeRecord ?? null, awayRecord: gameStats?.away.awayRecord ?? null }
               : gameStats?.away} />
           </div>
@@ -351,7 +383,7 @@ export default function GameRow({ game, league, logoMap, gameStats, prefetched }
                 <TeamLogo name={game.home_team} logoUrl={homeLogo} />
                 <span className="text-sm font-semibold text-white truncate">{game.home_team}</span>
               </div>
-              <TeamMeta side="home" stats={computedForm
+              <TeamMeta stats={computedForm
                 ? { form: computedForm.home, record: gameStats?.home.record ?? null, homeRecord: gameStats?.home.homeRecord ?? null, awayRecord: gameStats?.home.awayRecord ?? null }
                 : gameStats?.home} />
             </div>
@@ -362,7 +394,7 @@ export default function GameRow({ game, league, logoMap, gameStats, prefetched }
                 <TeamLogo name={game.away_team} logoUrl={awayLogo} />
               </div>
               <div className="flex justify-end">
-                <TeamMeta side="away" stats={computedForm
+                <TeamMeta stats={computedForm
                   ? { form: computedForm.away, record: gameStats?.away.record ?? null, homeRecord: gameStats?.away.homeRecord ?? null, awayRecord: gameStats?.away.awayRecord ?? null }
                   : gameStats?.away} />
               </div>
@@ -387,6 +419,7 @@ export default function GameRow({ game, league, logoMap, gameStats, prefetched }
             leagueKey={league.key}
             onFormLoaded={handleFormLoaded}
             prefetched={prefetched}
+            gameStats={gameStats}
           />
         </div>
       )}
