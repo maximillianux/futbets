@@ -3,17 +3,29 @@ import { resolveAlias } from './aliases';
 
 /** ESPN league slug for each Odds API sport key */
 export const ESPN_SLUGS: Record<string, string> = {
-  soccer_epl: 'eng.1',
-  soccer_spain_la_liga: 'esp.1',
-  soccer_germany_bundesliga: 'ger.1',
-  soccer_italy_serie_a: 'ita.1',
-  soccer_france_ligue_one: 'fra.1',
-  soccer_uefa_champs_league: 'uefa.champions',
-  soccer_uefa_europa_league: 'uefa.europa',
-  soccer_usa_mls: 'usa.1',
-  soccer_netherlands_eredivisie: 'ned.1',
-  soccer_portugal_primeira_liga: 'por.1',
-  soccer_mexico_ligamx: 'mex.1',
+  // Leagues
+  soccer_epl:                     'eng.1',
+  soccer_spain_la_liga:           'esp.1',
+  soccer_germany_bundesliga:      'ger.1',
+  soccer_italy_serie_a:           'ita.1',
+  soccer_france_ligue_one:        'fra.1',
+  soccer_netherlands_eredivisie:  'ned.1',
+  soccer_portugal_primeira_liga:  'por.1',
+  soccer_mexico_ligamx:           'mex.1',
+  soccer_usa_mls:                 'usa.1',
+  // European cups
+  soccer_uefa_champs_league:      'uefa.champions',
+  soccer_uefa_europa_league:      'uefa.europa',
+  soccer_uefa_conference:         'uefa.europa.conf',
+  // Domestic cups
+  soccer_england_fa_cup:          'eng.fa',
+  soccer_england_efl_cup:         'eng.league_cup',
+  soccer_spain_copa:              'esp.copa_del_rey',
+  soccer_germany_dfb_pokal:       'ger.dfb_pokal',
+  soccer_italy_coppa:             'ita.coppa_italia',
+  soccer_france_coupe:            'fra.coupe_de_france',
+  soccer_netherlands_cup:         'ned.cup',
+  soccer_mexico_copa:             'mex.copa_mx',
 };
 
 interface ESPNTeam {
