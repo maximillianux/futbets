@@ -6,7 +6,9 @@ export type FormResult = 'W' | 'D' | 'L';
 
 export interface TeamStats {
   form: FormResult[];   // last 5, oldest→newest for display
-  record: string | null; // e.g. "15-5-3" (W-D-L)
+  record: string | null; // e.g. "15-5-3" (W-D-L) overall
+  homeRecord: string | null; // e.g. "10-2-1" at home
+  awayRecord: string | null; // e.g. "5-3-2" away
 }
 
 export type GameStatus = 'scheduled' | 'live' | 'halftime' | 'finished';
@@ -114,8 +116,9 @@ function parseGameResult(comp: ESPNCompetition): GameResult {
   return { status, homeScore, awayScore, clock };
 }
 
-function parseRecord(records: ESPNRecord[] | undefined): string | null {
-  return records?.find((r) => r.type === 'total')?.summary ?? null;
+function parseRecord(records: ESPNRecord[] | undefined): { total: string | null; home: string | null; away: string | null } {
+  const find = (type: string) => records?.find((r) => r.type === type)?.summary ?? null;
+  return { total: find('total'), home: find('home'), away: find('away') };
 }
 
 /** Fetch league standings → normalized team name → "W-D-L" string */
@@ -223,19 +226,25 @@ export async function fetchLeagueStats(
     if (home) {
       const normName = normalize(home.team.displayName);
       const newForm = parseForm(home.form);
+      const rec = parseRecord(home.records);
       const existing = teamMap.get(normName);
       teamMap.set(normName, {
         form: newForm.length > 0 ? newForm : (existing?.form ?? []),
-        record: standingsMap.get(normName) ?? parseRecord(home.records) ?? existing?.record ?? null,
+        record: standingsMap.get(normName) ?? rec.total ?? existing?.record ?? null,
+        homeRecord: rec.home ?? existing?.homeRecord ?? null,
+        awayRecord: rec.away ?? existing?.awayRecord ?? null,
       });
     }
     if (away) {
       const normName = normalize(away.team.displayName);
       const newForm = parseForm(away.form);
+      const rec = parseRecord(away.records);
       const existing = teamMap.get(normName);
       teamMap.set(normName, {
         form: newForm.length > 0 ? newForm : (existing?.form ?? []),
-        record: standingsMap.get(normName) ?? parseRecord(away.records) ?? existing?.record ?? null,
+        record: standingsMap.get(normName) ?? rec.total ?? existing?.record ?? null,
+        homeRecord: rec.home ?? existing?.homeRecord ?? null,
+        awayRecord: rec.away ?? existing?.awayRecord ?? null,
       });
     }
 
@@ -256,8 +265,8 @@ export async function fetchLeagueStats(
     }
   }
 
-  // Match each Odds API game to ESPN stats
-  const empty: TeamStats = { form: [], record: null };
+  // Match each ESPN game to stats
+  const empty: TeamStats = { form: [], record: null, homeRecord: null, awayRecord: null };
   const defaultResult: GameResult = { status: 'scheduled', homeScore: null, awayScore: null, clock: null };
   const result: Record<string, { home: TeamStats; away: TeamStats; legInfo: LegInfo | null; result: GameResult }> = {};
 
@@ -271,10 +280,14 @@ export async function fetchLeagueStats(
     const homeStats: TeamStats = teamMap.get(homeKey) ?? {
       form: [],
       record: standingsMap.get(homeKey) ?? null,
+      homeRecord: null,
+      awayRecord: null,
     };
     const awayStats: TeamStats = teamMap.get(awayKey) ?? {
       form: [],
       record: standingsMap.get(awayKey) ?? null,
+      homeRecord: null,
+      awayRecord: null,
     };
 
     result[game.id] = {

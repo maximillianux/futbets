@@ -44,16 +44,19 @@ function FormDot({ result }: { result: FormResult }) {
   return <span className={`inline-block h-2 w-2 rounded-full ${colors[result]}`} title={result} />;
 }
 
-function TeamMeta({ stats }: { stats: TeamStats | undefined }) {
+function TeamMeta({ stats, side }: { stats: TeamStats | undefined; side: 'home' | 'away' }) {
   if (!stats) return null;
-  const hasRecord = stats.record !== null;
+  const splitRecord = side === 'home' ? stats.homeRecord : stats.awayRecord;
+  const hasRecord = splitRecord !== null;
   const hasForm = stats.form.length > 0;
   if (!hasRecord && !hasForm) return null;
 
   return (
     <div className="flex items-center gap-1.5 mt-0.5">
       {hasRecord && (
-        <span className="text-[10px] text-slate-500 font-medium tabular-nums">{stats.record}</span>
+        <span className="text-[10px] text-slate-500 font-medium tabular-nums" title={side === 'home' ? 'Home record' : 'Away record'}>
+          {side === 'home' ? 'H' : 'A'} {splitRecord}
+        </span>
       )}
       {hasRecord && hasForm && <span className="text-slate-700 text-[10px]">·</span>}
       {hasForm && (
@@ -327,10 +330,11 @@ export default function GameRow({ game, league, logoMap, gameStats, prefetched }
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <TeamLogo name={game.home_team} logoUrl={homeLogo} />
-              <span className="text-sm font-semibold text-white truncate">{game.home_team}</span>
+              <span className="text-sm font-semibold text-white truncate hidden sm:block">{game.home_team}</span>
+              <span className="text-sm font-semibold text-white sm:hidden">{game.home_team_abbr ?? game.home_team.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3)}</span>
             </div>
-            <TeamMeta stats={computedForm
-              ? { form: computedForm.home, record: gameStats?.home.record ?? null }
+            <TeamMeta side="home" stats={computedForm
+              ? { form: computedForm.home, record: gameStats?.home.record ?? null, homeRecord: gameStats?.home.homeRecord ?? null, awayRecord: gameStats?.home.awayRecord ?? null }
               : gameStats?.home} />
           </div>
 
@@ -339,12 +343,13 @@ export default function GameRow({ game, league, logoMap, gameStats, prefetched }
           {/* Away */}
           <div className="flex-1 min-w-0 text-right">
             <div className="flex items-center gap-2 justify-end">
-              <span className="text-sm font-semibold text-white truncate">{game.away_team}</span>
+              <span className="text-sm font-semibold text-white sm:hidden">{game.away_team_abbr ?? game.away_team.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3)}</span>
+              <span className="text-sm font-semibold text-white truncate hidden sm:block">{game.away_team}</span>
               <TeamLogo name={game.away_team} logoUrl={awayLogo} />
             </div>
             <div className="flex justify-end">
-              <TeamMeta stats={computedForm
-                ? { form: computedForm.away, record: gameStats?.away.record ?? null }
+              <TeamMeta side="away" stats={computedForm
+                ? { form: computedForm.away, record: gameStats?.away.record ?? null, homeRecord: gameStats?.away.homeRecord ?? null, awayRecord: gameStats?.away.awayRecord ?? null }
                 : gameStats?.away} />
             </div>
           </div>

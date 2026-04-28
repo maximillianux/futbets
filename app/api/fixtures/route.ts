@@ -23,7 +23,7 @@ function dateRange(): string[] {
 
 interface ESPNCompetitor {
   homeAway: 'home' | 'away';
-  team: { displayName: string };
+  team: { displayName: string; abbreviation?: string };
 }
 
 async function fetchLeagueFixtures(leagueKey: string, slug: string): Promise<Game[]> {
@@ -50,6 +50,8 @@ async function fetchLeagueFixtures(leagueKey: string, slug: string): Promise<Gam
         commence_time: event.date as string,
         home_team: home.team.displayName,
         away_team: away.team.displayName,
+        home_team_abbr: home.team.abbreviation,
+        away_team_abbr: away.team.abbreviation,
       });
     }
   }
