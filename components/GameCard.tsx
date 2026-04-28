@@ -245,10 +245,10 @@ function DetailsPanel({
   return (
     <div className="px-4 pb-4 flex flex-col gap-4 sm:flex-row sm:gap-6">
       {/* Form + H2H columns */}
-      <div className={`flex-1 grid gap-4 min-w-0 grid-cols-2 ${hasH2H ? 'sm:grid-cols-3' : ''}`}>
+      <div className={`flex-1 grid gap-4 min-w-0 grid-cols-1 sm:grid-cols-2 ${hasH2H ? 'sm:grid-cols-3' : ''}`}>
         {/* Home last 5 */}
         <div>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 truncate">{homeTeam} — Last 5</p>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">{homeTeam} — Last 5</p>
           {details.homeLast5.length === 0
             ? <p className="text-[10px] text-slate-600">No recent results</p>
             : details.homeLast5.map((m, i) => <ResultRow key={i} match={m} />)
@@ -257,16 +257,16 @@ function DetailsPanel({
 
         {/* Away last 5 */}
         <div>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 truncate">{awayTeam} — Last 5</p>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">{awayTeam} — Last 5</p>
           {details.awayLast5.length === 0
             ? <p className="text-[10px] text-slate-600">No recent results</p>
             : details.awayLast5.map((m, i) => <ResultRow key={i} match={m} />)
           }
         </div>
 
-        {/* H2H — spans full width on mobile, stays in grid on desktop */}
+        {/* H2H */}
         {hasH2H && (
-          <div className="col-span-2 sm:col-span-1">
+          <div>
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Head to Head</p>
             {details.h2h.map((m, i) => <ResultRow key={i} match={m} />)}
           </div>
@@ -325,32 +325,47 @@ export default function GameRow({ game, league, logoMap, gameStats, prefetched }
         <TimeCell game={game} result={gameResult} />
 
         {/* Teams + meta */}
-        <div className="flex-1 min-w-0 flex items-center gap-3">
-          {/* Home */}
-          <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0">
+          {/* Mobile: stack teams vertically */}
+          <div className="flex flex-col gap-1 sm:hidden">
             <div className="flex items-center gap-2">
               <TeamLogo name={game.home_team} logoUrl={homeLogo} />
-              <span className="text-sm font-semibold text-white truncate hidden sm:block">{game.home_team}</span>
-              <span className="text-sm font-semibold text-white sm:hidden">{game.home_team_abbr ?? game.home_team.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3)}</span>
+              <span className="text-sm font-semibold text-white truncate">{game.home_team}</span>
             </div>
             <TeamMeta side="home" stats={computedForm
               ? { form: computedForm.home, record: gameStats?.home.record ?? null, homeRecord: gameStats?.home.homeRecord ?? null, awayRecord: gameStats?.home.awayRecord ?? null }
               : gameStats?.home} />
+            <div className="flex items-center gap-2 mt-0.5">
+              <TeamLogo name={game.away_team} logoUrl={awayLogo} />
+              <span className="text-sm font-semibold text-white truncate">{game.away_team}</span>
+            </div>
+            <TeamMeta side="away" stats={computedForm
+              ? { form: computedForm.away, record: gameStats?.away.record ?? null, homeRecord: gameStats?.away.homeRecord ?? null, awayRecord: gameStats?.away.awayRecord ?? null }
+              : gameStats?.away} />
           </div>
 
-          <span className="text-xs text-slate-600 shrink-0">vs</span>
-
-          {/* Away */}
-          <div className="flex-1 min-w-0 text-right">
-            <div className="flex items-center gap-2 justify-end">
-              <span className="text-sm font-semibold text-white sm:hidden">{game.away_team_abbr ?? game.away_team.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3)}</span>
-              <span className="text-sm font-semibold text-white truncate hidden sm:block">{game.away_team}</span>
-              <TeamLogo name={game.away_team} logoUrl={awayLogo} />
+          {/* Desktop: side-by-side with vs */}
+          <div className="hidden sm:flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <TeamLogo name={game.home_team} logoUrl={homeLogo} />
+                <span className="text-sm font-semibold text-white truncate">{game.home_team}</span>
+              </div>
+              <TeamMeta side="home" stats={computedForm
+                ? { form: computedForm.home, record: gameStats?.home.record ?? null, homeRecord: gameStats?.home.homeRecord ?? null, awayRecord: gameStats?.home.awayRecord ?? null }
+                : gameStats?.home} />
             </div>
-            <div className="flex justify-end">
-              <TeamMeta side="away" stats={computedForm
-                ? { form: computedForm.away, record: gameStats?.away.record ?? null, homeRecord: gameStats?.away.homeRecord ?? null, awayRecord: gameStats?.away.awayRecord ?? null }
-                : gameStats?.away} />
+            <span className="text-xs text-slate-600 shrink-0">vs</span>
+            <div className="flex-1 min-w-0 text-right">
+              <div className="flex items-center gap-2 justify-end">
+                <span className="text-sm font-semibold text-white truncate">{game.away_team}</span>
+                <TeamLogo name={game.away_team} logoUrl={awayLogo} />
+              </div>
+              <div className="flex justify-end">
+                <TeamMeta side="away" stats={computedForm
+                  ? { form: computedForm.away, record: gameStats?.away.record ?? null, homeRecord: gameStats?.away.homeRecord ?? null, awayRecord: gameStats?.away.awayRecord ?? null }
+                  : gameStats?.away} />
+              </div>
             </div>
           </div>
         </div>
