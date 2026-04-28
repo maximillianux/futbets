@@ -39,4 +39,7 @@ export const LEAGUES: League[] = [
   { key: 'soccer_mexico_ligamx',          name: 'Liga MX',           country: 'Mexico',      flag: '🇲🇽' },
   { key: 'soccer_mexico_copa',            name: 'Copa MX',           country: 'Mexico',      flag: '🇲🇽' },
   { key: 'soccer_usa_mls',                name: 'MLS',               country: 'USA',         flag: '🇺🇸' },
+  { key: 'soccer_england_championship',   name: 'Championship',      country: 'England',     flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
+  { key: 'soccer_turkey_super_lig',       name: 'Süper Lig',         country: 'Turkey',      flag: '🇹🇷' },
+  { key: 'soccer_saudi_pro_league',       name: 'Saudi Pro League',  country: 'Saudi Arabia', flag: '🇸🇦' },
 ];

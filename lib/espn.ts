@@ -26,6 +26,9 @@ export const ESPN_SLUGS: Record<string, string> = {
   soccer_france_coupe:            'fra.coupe_de_france',
   soccer_netherlands_cup:         'ned.cup',
   soccer_mexico_copa:             'mex.copa_mx',
+  soccer_england_championship:    'eng.2',
+  soccer_turkey_super_lig:        'tur.1',
+  soccer_saudi_pro_league:        'ksa.1',
 };
 
 interface ESPNTeam {
