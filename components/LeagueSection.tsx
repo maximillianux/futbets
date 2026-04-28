@@ -29,9 +29,9 @@ export default function LeagueSection({ league, games, logoMap, statsMap, prefet
         </span>
       </div>
 
-      <div className="rounded-xl bg-[#0e1a0e] border border-[#1a2d1c] overflow-hidden">
+      <div className="rounded-xl bg-[#12141f] border border-[#1e2035] overflow-hidden">
         {/* Column headers */}
-        <div className="flex items-center gap-4 px-4 py-2 border-b border-[#1a2d1c] bg-[#0b130b]">
+        <div className="flex items-center gap-4 px-4 py-2 border-b border-[#1e2035] bg-[#0e1020]">
           <span className="w-[80px] shrink-0 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Time</span>
           <span className="flex-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Match</span>
         </div>

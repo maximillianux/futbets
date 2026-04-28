@@ -29,7 +29,7 @@ function buildDateRange(): Date[] {
 function DateNav({ selected, onChange }: { selected: string; onChange: (d: string) => void }) {
   const days = buildDateRange();
   return (
-    <div className="flex gap-1 mb-6 border-b border-[#1a2d1c] pb-4">
+    <div className="flex gap-1 mb-6 border-b border-[#1e2035] pb-4">
       {days.map((d) => {
         const dateStr = toLocalDateStr(d);
         const isSelected = dateStr === selected;
@@ -156,7 +156,7 @@ export default function Home() {
     : [];
 
   return (
-    <div className="min-h-screen bg-[#070d07] text-white">
+    <div className="min-h-screen bg-[#0a0b14] text-white">
       <Header onRefresh={fetchData} loading={loading} lastUpdated={lastUpdated} />
 
       <main className="mx-auto max-w-7xl px-4 py-8">
@@ -209,8 +209,8 @@ export default function Home() {
         )}
       </main>
 
-      <footer className="mt-16 border-t border-[#1a2d1c] py-6 text-center text-xs text-slate-600">
-        Fixtures &amp; logos via ESPN · For entertainment only · Gamble responsibly
+      <footer className="mt-16 border-t border-[#1e2035] py-6 text-center text-xs text-slate-600">
+        Odds via The Odds API · Logos via ESPN · For entertainment only · Gamble responsibly
       </footer>
     </div>
   );

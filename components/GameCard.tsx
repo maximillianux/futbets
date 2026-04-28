@@ -29,7 +29,7 @@ function TeamLogo({ name, logoUrl }: { name: string; logoUrl: string | null }) {
     );
   }
   return (
-    <div className="h-7 w-7 shrink-0 rounded-full bg-[#162118] border border-[#1a2d1c] flex items-center justify-center">
+    <div className="h-7 w-7 shrink-0 rounded-full bg-[#1a1d2e] border border-[#1e2035] flex items-center justify-center">
       <span className="text-[10px] font-bold text-slate-400">{initials}</span>
     </div>
   );
@@ -139,7 +139,7 @@ function SmallLogo({ name, logoUrl }: { name: string; logoUrl: string | null }) 
   }
   const initials = name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase();
   return (
-    <div className="h-4 w-4 shrink-0 rounded-full bg-[#162118] border border-[#1a2d1c] flex items-center justify-center">
+    <div className="h-4 w-4 shrink-0 rounded-full bg-[#1a1d2e] border border-[#1e2035] flex items-center justify-center">
       <span className="text-[7px] font-bold text-slate-500">{initials}</span>
     </div>
   );
@@ -148,7 +148,7 @@ function SmallLogo({ name, logoUrl }: { name: string; logoUrl: string | null }) 
 function ResultRow({ match, logoMap }: { match: MatchResult; logoMap: LogoMap }) {
   const logoUrl = findLogo(match.opponent, logoMap);
   return (
-    <div className="flex items-center gap-2 py-1.5 border-b border-[#1a2d1c] last:border-0">
+    <div className="flex items-center gap-2 py-1.5 border-b border-[#1e2035] last:border-0">
       <span className="text-[10px] text-slate-600 w-[44px] shrink-0">{match.date}</span>
       <span className="text-[10px] text-slate-500 w-4 shrink-0">{match.wasHome ? 'H' : 'A'}</span>
       <SmallLogo name={match.opponent} logoUrl={logoUrl} />
@@ -173,7 +173,7 @@ function StandingsTable({ rows, homeTeam, awayTeam, logoMap }: { rows: StandingR
       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">League Table</p>
       <table className="w-full text-[10px]">
         <thead>
-          <tr className="text-slate-600 border-b border-[#1a2d1c]">
+          <tr className="text-slate-600 border-b border-[#1e2035]">
             <th className="text-left pb-1 w-5">#</th>
             <th className="text-left pb-1">Club</th>
             <th className="text-center pb-1 w-5">P</th>
@@ -190,7 +190,7 @@ function StandingsTable({ rows, homeTeam, awayTeam, logoMap }: { rows: StandingR
             return (
               <tr
                 key={row.position}
-                className={`border-b border-[#1a2d1c] last:border-0 ${hl ? 'bg-green-500/10' : ''}`}
+                className={`border-b border-[#1e2035] last:border-0 ${hl ? 'bg-green-500/10' : ''}`}
               >
                 <td className={`py-1 tabular-nums ${hl ? 'text-green-400 font-bold' : 'text-slate-600'}`}>{row.position}</td>
                 <td className={`py-1 ${hl ? 'text-green-300 font-semibold' : 'text-slate-300'}`}>
@@ -272,7 +272,7 @@ function DetailsPanel({
     <div className="flex flex-col">
       {/* Records strip — always full width */}
       {showSplits && (
-        <div className="px-6 py-3 border-b border-[#1a2d1c] flex gap-6">
+        <div className="px-6 py-3 border-b border-[#1e2035] flex gap-6">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 mb-1">
               <SmallLogo name={homeTeam} logoUrl={findLogo(homeTeam, logoMap)} />
@@ -338,7 +338,7 @@ function DetailsPanel({
 
       {/* League table — full width, below form */}
       {hasStandings && (
-        <div className="px-6 pb-5 border-t border-[#1a2d1c] pt-4">
+        <div className="px-6 pb-5 border-t border-[#1e2035] pt-4">
           <StandingsTable rows={standings} homeTeam={homeTeam} awayTeam={awayTeam} logoMap={logoMap} />
         </div>
       )}
@@ -376,7 +376,7 @@ export default function GameRow({ game, league, logoMap, gameStats, prefetched }
   const legInfo = gameStats?.legInfo ?? null;
 
   return (
-    <div className="border-b border-[#1a2d1c] last:border-b-0">
+    <div className="border-b border-[#1e2035] last:border-b-0">
       {legInfo && <LegBanner legInfo={legInfo} />}
 
       {/* Main row — clickable to expand */}
@@ -443,7 +443,7 @@ export default function GameRow({ game, league, logoMap, gameStats, prefetched }
 
       {/* Expanded details */}
       {expanded && (
-        <div className="bg-[#091209] border-t border-[#1a2d1c]">
+        <div className="bg-[#0d0f1c] border-t border-[#1e2035]">
           <DetailsPanel
             homeTeam={game.home_team}
             awayTeam={game.away_team}
