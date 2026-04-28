@@ -129,11 +129,29 @@ function ResultBadge({ result }: { result: 'W' | 'D' | 'L' }) {
   );
 }
 
-function ResultRow({ match }: { match: MatchResult }) {
+function SmallLogo({ name, logoUrl }: { name: string; logoUrl: string | null }) {
+  if (logoUrl) {
+    return (
+      <div className="relative h-4 w-4 shrink-0">
+        <Image src={logoUrl} alt={name} fill className="object-contain" unoptimized />
+      </div>
+    );
+  }
+  const initials = name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+  return (
+    <div className="h-4 w-4 shrink-0 rounded-full bg-[#1a1d2e] border border-[#1e2035] flex items-center justify-center">
+      <span className="text-[7px] font-bold text-slate-500">{initials}</span>
+    </div>
+  );
+}
+
+function ResultRow({ match, logoMap }: { match: MatchResult; logoMap: LogoMap }) {
+  const logoUrl = findLogo(match.opponent, logoMap);
   return (
     <div className="flex items-center gap-2 py-1.5 border-b border-[#1e2035] last:border-0">
       <span className="text-[10px] text-slate-600 w-[44px] shrink-0">{match.date}</span>
       <span className="text-[10px] text-slate-500 w-4 shrink-0">{match.wasHome ? 'H' : 'A'}</span>
+      <SmallLogo name={match.opponent} logoUrl={logoUrl} />
       <span className="text-xs text-slate-300 flex-1 truncate">{match.opponent}</span>
       <span className="text-xs font-bold text-white tabular-nums shrink-0">
         {match.goalsFor}–{match.goalsAgainst}
@@ -143,7 +161,7 @@ function ResultRow({ match }: { match: MatchResult }) {
   );
 }
 
-function StandingsTable({ rows, homeTeam, awayTeam }: { rows: StandingRow[]; homeTeam: string; awayTeam: string }) {
+function StandingsTable({ rows, homeTeam, awayTeam, logoMap }: { rows: StandingRow[]; homeTeam: string; awayTeam: string; logoMap: LogoMap }) {
   if (rows.length === 0) return null;
 
   const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -175,7 +193,12 @@ function StandingsTable({ rows, homeTeam, awayTeam }: { rows: StandingRow[]; hom
                 className={`border-b border-[#1e2035] last:border-0 ${hl ? 'bg-green-500/10' : ''}`}
               >
                 <td className={`py-1 tabular-nums ${hl ? 'text-green-400 font-bold' : 'text-slate-600'}`}>{row.position}</td>
-                <td className={`py-1 ${hl ? 'text-green-300 font-semibold' : 'text-slate-300'}`}>{row.team}</td>
+                <td className={`py-1 ${hl ? 'text-green-300 font-semibold' : 'text-slate-300'}`}>
+                  <div className="flex items-center gap-1.5">
+                    <SmallLogo name={row.team} logoUrl={findLogo(row.team, logoMap)} />
+                    {row.team}
+                  </div>
+                </td>
                 <td className="py-1 text-center tabular-nums text-slate-500">{row.played}</td>
                 <td className="py-1 text-center tabular-nums text-slate-400">{row.won}</td>
                 <td className="py-1 text-center tabular-nums text-slate-500">{row.drawn}</td>
@@ -194,12 +217,13 @@ function StandingsTable({ rows, homeTeam, awayTeam }: { rows: StandingRow[]; hom
 }
 
 function DetailsPanel({
-  homeTeam, awayTeam, leagueKey, onFormLoaded, prefetched, gameStats,
+  homeTeam, awayTeam, leagueKey, onFormLoaded, prefetched, gameStats, logoMap,
 }: {
   homeTeam: string; awayTeam: string; leagueKey: string;
   onFormLoaded: (home: FormResult[], away: FormResult[]) => void;
   prefetched: PrefetchedGame | null;
   gameStats: GameStatEntry | null;
+  logoMap: LogoMap;
 }) {
   const [details, setDetails] = useState<GameDetailsResponse | null>(prefetched?.details ?? null);
   const [standings, setStandings] = useState<StandingRow[]>(prefetched?.standings ?? []);
@@ -250,7 +274,10 @@ function DetailsPanel({
       {showSplits && (
         <div className="px-6 py-3 border-b border-[#1e2035] flex gap-6">
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 truncate">{homeTeam}</p>
+            <div className="flex items-center gap-1.5 mb-1">
+              <SmallLogo name={homeTeam} logoUrl={findLogo(homeTeam, logoMap)} />
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider truncate">{homeTeam}</p>
+            </div>
             <div className="flex gap-4">
               {homeR?.homeRecord && (
                 <span className="text-xs text-slate-300 tabular-nums"><span className="text-slate-600 mr-1 text-[10px]">H</span>{homeR.homeRecord}</span>
@@ -262,7 +289,10 @@ function DetailsPanel({
             </div>
           </div>
           <div className="flex-1 min-w-0 text-right">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 truncate">{awayTeam}</p>
+            <div className="flex items-center gap-1.5 mb-1 justify-end">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider truncate">{awayTeam}</p>
+              <SmallLogo name={awayTeam} logoUrl={findLogo(awayTeam, logoMap)} />
+            </div>
             <div className="flex gap-4 justify-end">
               {awayR?.homeRecord && (
                 <span className="text-xs text-slate-300 tabular-nums"><span className="text-slate-600 mr-1 text-[10px]">H</span>{awayR.homeRecord}</span>
@@ -279,23 +309,29 @@ function DetailsPanel({
       {/* Form + H2H — full width grid */}
       <div className={`px-6 py-4 grid gap-6 grid-cols-1 sm:grid-cols-2 ${hasH2H ? 'lg:grid-cols-3' : ''}`}>
         <div>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">{homeTeam} — Last 5</p>
+          <div className="flex items-center gap-1.5 mb-2">
+            <SmallLogo name={homeTeam} logoUrl={findLogo(homeTeam, logoMap)} />
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider truncate">{homeTeam} — Last 5</p>
+          </div>
           {details.homeLast5.length === 0
             ? <p className="text-[10px] text-slate-600">No recent results</p>
-            : details.homeLast5.map((m, i) => <ResultRow key={i} match={m} />)
+            : details.homeLast5.map((m, i) => <ResultRow key={i} match={m} logoMap={logoMap} />)
           }
         </div>
         <div>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">{awayTeam} — Last 5</p>
+          <div className="flex items-center gap-1.5 mb-2">
+            <SmallLogo name={awayTeam} logoUrl={findLogo(awayTeam, logoMap)} />
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider truncate">{awayTeam} — Last 5</p>
+          </div>
           {details.awayLast5.length === 0
             ? <p className="text-[10px] text-slate-600">No recent results</p>
-            : details.awayLast5.map((m, i) => <ResultRow key={i} match={m} />)
+            : details.awayLast5.map((m, i) => <ResultRow key={i} match={m} logoMap={logoMap} />)
           }
         </div>
         {hasH2H && (
           <div>
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Head to Head</p>
-            {details.h2h.map((m, i) => <ResultRow key={i} match={m} />)}
+            {details.h2h.map((m, i) => <ResultRow key={i} match={m} logoMap={logoMap} />)}
           </div>
         )}
       </div>
@@ -303,7 +339,7 @@ function DetailsPanel({
       {/* League table — full width, below form */}
       {hasStandings && (
         <div className="px-6 pb-5 border-t border-[#1e2035] pt-4">
-          <StandingsTable rows={standings} homeTeam={homeTeam} awayTeam={awayTeam} />
+          <StandingsTable rows={standings} homeTeam={homeTeam} awayTeam={awayTeam} logoMap={logoMap} />
         </div>
       )}
     </div>
@@ -415,6 +451,7 @@ export default function GameRow({ game, league, logoMap, gameStats, prefetched }
             onFormLoaded={handleFormLoaded}
             prefetched={prefetched}
             gameStats={gameStats}
+            logoMap={logoMap}
           />
         </div>
       )}
