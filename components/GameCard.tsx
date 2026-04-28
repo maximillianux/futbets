@@ -175,7 +175,7 @@ function StandingsTable({ rows, homeTeam, awayTeam }: { rows: StandingRow[]; hom
                 className={`border-b border-[#1e2035] last:border-0 ${hl ? 'bg-green-500/10' : ''}`}
               >
                 <td className={`py-1 tabular-nums ${hl ? 'text-green-400 font-bold' : 'text-slate-600'}`}>{row.position}</td>
-                <td className={`py-1 truncate max-w-[80px] ${hl ? 'text-green-300 font-semibold' : 'text-slate-300'}`}>{row.team}</td>
+                <td className={`py-1 ${hl ? 'text-green-300 font-semibold' : 'text-slate-300'}`}>{row.team}</td>
                 <td className="py-1 text-center tabular-nums text-slate-500">{row.played}</td>
                 <td className="py-1 text-center tabular-nums text-slate-400">{row.won}</td>
                 <td className="py-1 text-center tabular-nums text-slate-500">{row.drawn}</td>
@@ -245,40 +245,39 @@ function DetailsPanel({
   const showSplits = (homeR?.homeRecord ?? homeR?.awayRecord ?? awayR?.homeRecord ?? awayR?.awayRecord) != null;
 
   return (
-    <div className="px-4 pb-4 flex flex-col gap-4 sm:flex-row sm:gap-6">
-      {/* Home/Away record strip */}
+    <div className="flex flex-col">
+      {/* Records strip — always full width */}
       {showSplits && (
-        <div className="-mx-4 px-4 py-3 border-b border-[#1e2035] flex gap-4 bg-[#0d0f1c]">
+        <div className="px-6 py-3 border-b border-[#1e2035] flex gap-6">
           <div className="flex-1 min-w-0">
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 truncate">{homeTeam}</p>
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               {homeR?.homeRecord && (
-                <span className="text-[11px] text-slate-400 tabular-nums"><span className="text-slate-600 mr-1">H</span>{homeR.homeRecord}</span>
+                <span className="text-xs text-slate-300 tabular-nums"><span className="text-slate-600 mr-1 text-[10px]">H</span>{homeR.homeRecord}</span>
               )}
               {homeR?.awayRecord && (
-                <span className="text-[11px] text-slate-400 tabular-nums"><span className="text-slate-600 mr-1">A</span>{homeR.awayRecord}</span>
+                <span className="text-xs text-slate-300 tabular-nums"><span className="text-slate-600 mr-1 text-[10px]">A</span>{homeR.awayRecord}</span>
               )}
-              {!homeR?.homeRecord && !homeR?.awayRecord && <span className="text-[11px] text-slate-600">—</span>}
+              {!homeR?.homeRecord && !homeR?.awayRecord && <span className="text-xs text-slate-600">—</span>}
             </div>
           </div>
           <div className="flex-1 min-w-0 text-right">
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 truncate">{awayTeam}</p>
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-4 justify-end">
               {awayR?.homeRecord && (
-                <span className="text-[11px] text-slate-400 tabular-nums"><span className="text-slate-600 mr-1">H</span>{awayR.homeRecord}</span>
+                <span className="text-xs text-slate-300 tabular-nums"><span className="text-slate-600 mr-1 text-[10px]">H</span>{awayR.homeRecord}</span>
               )}
               {awayR?.awayRecord && (
-                <span className="text-[11px] text-slate-400 tabular-nums"><span className="text-slate-600 mr-1">A</span>{awayR.awayRecord}</span>
+                <span className="text-xs text-slate-300 tabular-nums"><span className="text-slate-600 mr-1 text-[10px]">A</span>{awayR.awayRecord}</span>
               )}
-              {!awayR?.homeRecord && !awayR?.awayRecord && <span className="text-[11px] text-slate-600">—</span>}
+              {!awayR?.homeRecord && !awayR?.awayRecord && <span className="text-xs text-slate-600">—</span>}
             </div>
           </div>
         </div>
       )}
 
-      {/* Form + H2H columns */}
-      <div className={`flex-1 grid gap-4 min-w-0 grid-cols-1 sm:grid-cols-2 ${hasH2H ? 'sm:grid-cols-3' : ''}`}>
-        {/* Home last 5 */}
+      {/* Form + H2H — full width grid */}
+      <div className={`px-6 py-4 grid gap-6 grid-cols-1 sm:grid-cols-2 ${hasH2H ? 'lg:grid-cols-3' : ''}`}>
         <div>
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">{homeTeam} — Last 5</p>
           {details.homeLast5.length === 0
@@ -286,8 +285,6 @@ function DetailsPanel({
             : details.homeLast5.map((m, i) => <ResultRow key={i} match={m} />)
           }
         </div>
-
-        {/* Away last 5 */}
         <div>
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">{awayTeam} — Last 5</p>
           {details.awayLast5.length === 0
@@ -295,8 +292,6 @@ function DetailsPanel({
             : details.awayLast5.map((m, i) => <ResultRow key={i} match={m} />)
           }
         </div>
-
-        {/* H2H */}
         {hasH2H && (
           <div>
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Head to Head</p>
@@ -305,9 +300,9 @@ function DetailsPanel({
         )}
       </div>
 
-      {/* League table — full width on mobile, fixed sidebar on desktop */}
+      {/* League table — full width, below form */}
       {hasStandings && (
-        <div className="sm:w-60 sm:shrink-0">
+        <div className="px-6 pb-5 border-t border-[#1e2035] pt-4">
           <StandingsTable rows={standings} homeTeam={homeTeam} awayTeam={awayTeam} />
         </div>
       )}
